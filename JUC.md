@@ -26,7 +26,7 @@
 
 > 常用辅助类
 1. CountDownLatch
-```
+```java
 public static void main(String[] args) throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(6);
 
@@ -45,7 +45,7 @@ public static void main(String[] args) throws InterruptedException {
     }
 ```
 2. CyclicBarrier
-```
+```java
 public static void main(String[] args) {
 
         // 召唤神龙的线程
@@ -69,7 +69,7 @@ public static void main(String[] args) {
     }
 ```
 3. Semaphore
-```
+```java
 // 模拟停车位(3个), 应用场景: 限流
     public static void main(String[] args) {
         // 3个线程等同于3个停车位
@@ -95,7 +95,7 @@ public static void main(String[] args) {
     }
 ```
 > ReadWriteLock
-```
+```java
 public class ReadWriteLockDemo {
     public static void main(String[] args) {
         MyCacheLock myCache = new MyCacheLock();
@@ -165,7 +165,7 @@ class MyCacheLock{
 |移除|remove()|poll()|take()|poll()|
 |查看队首元素|element()|peek()|-|-|
 1. 抛出异常
-```
+```java
     /**
      * 抛出异常
      */
@@ -194,7 +194,7 @@ class MyCacheLock{
     }
 ```
 2. 不会抛出异常,有返回值
-```
+```java
 /**
      * 不抛出异常,但带有返回值
      */
@@ -222,7 +222,7 @@ class MyCacheLock{
     }
 ```
 3. 阻塞等待(一直阻塞)
-```
+```java
 /**
      * 阻塞等待(一直等待)
      */
@@ -245,7 +245,7 @@ class MyCacheLock{
     }
 ```
 4. 超时等待
-```
+```java
     /**
      * 超时等待
      */
@@ -272,3 +272,109 @@ class MyCacheLock{
 > SynchronousQueue 同步队列
 
 SynchronousQueue和其他的BlockingQueue不一样, 它不存储元素, 当put()一个元素后, 必须等待take()出来后, 否则不能put()进去值
+
+> 线程池
+
+线程池的好处:
+
+1. 降低资源的消耗
+2. 提高响应的速度
+3. 方便管理
+
+**线程复用, 可以控制最大并发线程数, 管理线程**
+
+> 线程池: 三大方法、七种策略、四种拒绝策略
+1. 三大方法
+```java
+public static void main(String[] args) {
+        // 单个线程
+//        ExecutorService threadPool = Executors.newSingleThreadExecutor();
+        // 创建固定大小的线程池
+//        ExecutorService threadPool = Executors.newFixedThreadPool(5);
+        // 可伸缩的线程池
+        ExecutorService threadPool = Executors.newCachedThreadPool();
+
+        try {
+            for (int i = 1; i <= 1001; i++){
+                // 使用线程池创建线程
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + " is ok");
+                });
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            // 线程池使用完, 需要关闭
+            threadPool.shutdown();
+        }
+    }
+```
+**线程池本质**
+```java
+public ThreadPoolExecutor(int corePoolSize,//核心线程池大小
+                              int maximumPoolSize,//最大核心线程池大小
+                              long keepAliveTime,
+                              // 超时后没有调用就是释放的时间
+                              TimeUnit unit,// 超时单位
+                              BlockingQueue<Runnable> workQueue,// 阻塞队列
+                              ThreadFactory threadFactory,// 创建线程工厂, 一般不用动
+                              RejectedExecutionHandler handler// 拒绝策略) {
+        if (corePoolSize < 0 ||
+            maximumPoolSize <= 0 ||
+            maximumPoolSize < corePoolSize ||
+            keepAliveTime < 0)
+            throw new IllegalArgumentException();
+        if (workQueue == null || threadFactory == null || handler == null)
+            throw new NullPointerException();
+        this.corePoolSize = corePoolSize;
+        this.maximumPoolSize = maximumPoolSize;
+        this.workQueue = workQueue;
+        this.keepAliveTime = unit.toNanos(keepAliveTime);
+        this.threadFactory = threadFactory;
+        this.handler = handler;
+    }
+```
+**线程池七大参数理解举例**
+
+![avatar](picture/threadPool.png)
+> 手动创建线程池
+```java
+@Test
+    public void testThreadPool(){
+        /*四大策略
+        1. new ThreadPoolExecutor.AbortPolicy(): 银行满了, 还有人继续进来, 不处理此人, 抛出异常
+        2. new ThreadPoolExecutor.CallerRunsPolicy(): 哪里来的去哪里(main 线程执行)
+        3. new ThreadPoolExecutor.DiscardPolicy(): 队列满了, 丢掉任务, 不会抛出异常
+        4. new ThreadPoolExecutor.DiscardOldestPolicy(): 队列满了, 尝试和最早的线程竞争, 不会抛出异常
+         */
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(
+                2,
+                5,
+                3,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(3),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.DiscardOldestPolicy());// 队列满了, 尝试和最早的线程竞争, 不会抛出异常
+        try {
+            /*
+            最大承载: max + queue
+            超过最大承载(拒绝策略为AbortPolicy()): java.util.concurrent.RejectedExecutionException
+             */
+            for (int i = 1; i <= 9; i++){
+                // 使用线程池创建线程
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + " is ok");
+                });
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            // 线程池使用完, 需要关闭
+            threadPool.shutdown();
+        }
+    }
+```
+
+**如何定义最大线程池大小**
+1. CPU密集型: 计算机是几核的就定义为几个线程, 可以保证CPU效率最高.Runtime.getRuntime().availableProcessors();
+2. IO密集型: 判断程序中十分占用IO的程序数, 只要最大线程数大于IO线程数即可
