@@ -378,3 +378,224 @@ public ThreadPoolExecutor(int corePoolSize,//核心线程池大小
 **如何定义最大线程池大小**
 1. CPU密集型: 计算机是几核的就定义为几个线程, 可以保证CPU效率最高.Runtime.getRuntime().availableProcessors();
 2. IO密集型: 判断程序中十分占用IO的程序数, 只要最大线程数大于IO线程数即可
+
+> 四大函数式接口
+
+lambda表达式、链式编程、函数式接口、Stream流式计算
+
+**函数式接口**
+
+只有一个方法的接口
+```java
+@FunctionalInterface
+public interface Runnable {
+    public abstract void run();
+}
+/*
+很多FunctionalInterface
+简化编程模型, 在新版本框架底层大量应用
+*/
+```
+> Function函数式接口: 有一个输入值, 返回输入值
+```java
+public static void main(String[] args) {
+//        Function<String, String> function = new Function<String, String>() {
+//            @Override
+//            public String apply(String s) {
+//                return s;
+//            }
+//        };
+//        System.out.println(function.apply("王小胖"));
+        Function function = (str) -> { return str; };
+        System.out.println(function.apply("王小瘦"));
+    }
+```
+> Predicate断言式接口: 有一个输入参数, 返回值只能是布尔值
+```java
+    /**
+     * 断言式接口: 有一个输入参数, 返回值只能是布尔值
+     */
+    @Test
+    public void testPredictFunction(){
+//        Predicate<String> predicate = new Predicate<String>() {
+//            @Override
+//            public boolean test(String s) {
+//                return s.isEmpty();
+//            }
+//        };
+
+        Predicate<String> predicate = (str) -> { return str.isEmpty();};
+        System.out.println(predicate.test(""));
+    }
+```
+> Consumer消费型接口: 只有输入, 没有输出
+```java
+/*
+    Consumer消费型接口: 只有输入, 没有输出
+     */
+    @Test
+    public void testConsumer(){
+//        Consumer<String> consumer = new Consumer<String>() {
+//            @Override
+//            public void accept(String s) {
+//                System.out.println(s);
+//            }
+//        };
+        Consumer<String> consumer = (s) -> {
+            System.out.println(s);
+        };
+        consumer.accept("小王呀");
+    }
+```
+
+> Supplier供给型接口:只有输出, 没有输入
+```java
+/*
+    Supplier供给型接口:只有输出, 没有输入
+     */
+    @Test
+    public void testSupplier(){
+//        Supplier<Integer> supplier = new Supplier<Integer>() {
+//            @Override
+//            public Integer get() {
+//                return 1024;
+//            }
+//        };
+        Supplier<Integer> supplier = () -> {return 1024;};
+        System.out.println(supplier.get());
+    }
+```
+> ForkJoin
+
+特点: 工作窃取
+```java
+public class ForkJoinDemo extends RecursiveTask<Long> {
+
+    /*
+    如何使用ForkJoin
+    1. 通过ForkJoinPool来执行
+    2. 计算任务execute(ForkJoinTask<?> task)
+    3. 计算类必须继承ForkJoinTask
+     */
+    private long start;
+    private long end;
+
+    // 临界值, 拆分任务的临界
+    private long tmp = 10000;
+
+    public ForkJoinDemo(long start, long end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    /**
+     * ForkJoin计算方法
+     * @return
+     */
+    @Override
+    protected Long compute() {
+        Long sum = 0L;
+        if ((end - start) <= tmp){
+            for (long i = start; i <= end; i++){
+                sum += i;
+            }
+        } else {// ForkJoin
+            long mid = (start + end) / 2;
+            ForkJoinDemo task1 = new ForkJoinDemo(start, mid);
+            task1.fork(); // 把任务拆分, 将线程压入队列
+            ForkJoinDemo task2 = new ForkJoinDemo(mid + 1, end);
+            task2.fork(); // 把任务拆分, 将线程压入队列
+
+            // 合并子任务计算结果
+            return task1.join() + task2.join();
+        }
+        return sum;
+    }
+}
+```
+**测试ForkJoin**
+```java
+public class ForkJoinTest {
+
+    private static final Long computeStartNumber = 1L;
+    private static final Long computeEndNumber = 10_0000_0000L;
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+//        test1(); // 3543
+//        test2(); // 2225
+        test3(); // 266
+    }
+
+    public static void test1(){
+        long startTime = System.currentTimeMillis();
+        long sum = 0;
+        for (Long i = 1L; i <= 10_0000_0000; i++){
+            sum += i;
+        }
+        long endTime = System.currentTimeMillis();
+        System.out.println("结果为=" + sum + ", 执行时间=" + (endTime - startTime));
+    }
+
+    public static void test2() throws ExecutionException, InterruptedException {
+        long startTime = System.currentTimeMillis();
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        ForkJoinTask<Long> forkJoinTask = new ForkJoinDemo(computeStartNumber, computeEndNumber);
+        // forkJoinPool.execute(forkJoinTask); execute()方法会执行, 但是不会返回执行结果
+        ForkJoinTask<Long> res = forkJoinPool.submit(forkJoinTask);
+        Long computeRes = res.get();
+        long endTime = System.currentTimeMillis();
+        System.out.println("结果为=" + computeRes + ", 执行时间=" + (endTime - startTime));
+    }
+
+    public static void test3(){
+        long startTime = System.currentTimeMillis();
+        // Stream并行流
+        long reduce = LongStream.rangeClosed(computeStartNumber, computeEndNumber).parallel().reduce(0, Long::sum);
+        long endTime = System.currentTimeMillis();
+        System.out.println("结果为=" + reduce + ", 执行时间=" + (endTime - startTime));
+    }
+}
+```
+
+> 异步回调
+```java
+/**
+     * 没有返回值的异步回调 runAsync
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
+    @Test
+    public void testRunAsyncNotReturn() throws ExecutionException, InterruptedException {
+        CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName() + "runAsync=>Void");
+        });
+        System.out.println("main线程");
+        completableFuture.get(); // 阻塞获取结果
+    }
+
+    /**
+     * 有返回值的异步回调 supplyAsync
+     */
+    @Test
+    public void testRunAsyncWithReturn() throws ExecutionException, InterruptedException {
+        CompletableFuture<Integer> completableFuture = CompletableFuture.supplyAsync(() -> {
+            System.out.println(Thread.currentThread().getName() +" => supplyAsync with return");
+            int sum  = 10 / 0;
+            return 1024;
+        });
+        Integer res = completableFuture.whenComplete((t, u) -> {
+            System.out.println("t=>" + t); // 正常的返回结果
+            System.out.println("u=>" + u); // 异常的返回结果
+        }).exceptionally((e) -> {
+            System.out.println(e.getMessage());
+            return 20002;
+        }).get();
+
+        System.out.println(res);
+    }
+```
