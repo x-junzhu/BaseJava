@@ -641,3 +641,351 @@ Java内存模型, 不存在的东西, 是一种概念, 约定.
 + 如果对一个变量进行lock操作，会清空所有工作内存中此变量的值，在执行引擎使用这个变量前，必须重新load或assign操作初始化变量的值
 + 如果一个变量没有被lock，就不能对其进行unlock操作。也不能unlock一个被其他线程锁住的变量
 + 对一个变量进行unlock操作之前，必须把此变量同步回主内存
+
+> 1. 可见性
+```java
+/*
+    问题描述: 当main线程中num被修改, 但是Thread中不能马上知道main线程中的, 具体参考JMM内存模型
+    num被修改, 所以一直在循环.
+    解决方案: 使用volatile, 保证可见性
+     */
+    private volatile static int  num = 0;
+    public static void main(String[] args) {
+        new Thread(() -> {
+            while (num == 0){ }
+        }).start();
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        num = 1;
+        System.out.println("num = " + num);
+    }
+```
+
+> 2. 不保证可见性
+
+原子性: 不可分割
+线程A在执行任务的时候不能被打扰, 也不可以被分割, 要么同时成功要么同时失败.
+```java
+/*
+    测试volatile不保证原子性
+     */
+    @Test
+    public void testAtomic(){
+        // 理论上结果为20000
+        for (int i = 1; i <= 20; i++){
+            new Thread(() -> {
+                for (int j = 0; j < 1000; j++){
+                    add();
+                }
+            }).start();
+        }
+        while (Thread.activeCount() > 2){ // 默认有两个线程 main gc
+            Thread.yield();
+        }
+        System.out.println(Thread.currentThread().getName() + ":" + num);
+    }
+
+    public static void add(){
+        num ++;
+    }
+```
+
+如果不加lock或者synchronized怎么保证原子性?
+
+使用原子类, 例如: AtomicInteger, 这些类的底层都直接和操作系统挂钩, 在内存中修改值, Unsafe是一个很特殊的存在.
+```java
+private volatile static AtomicInteger atomicInteger = new AtomicInteger();
+    /*
+    测试volatile不保证原子性
+    */
+    @Test
+    public void testAtomic(){
+        // 理论上结果为20000
+        for (int i = 1; i <= 20; i++){
+            new Thread(() -> {
+                for (int j = 0; j < 1000; j++){
+                    add();
+                }
+            }).start();
+        }
+        while (Thread.activeCount() > 2){ // 默认有两个线程 main gc
+            Thread.yield();
+        }
+        System.out.println(Thread.currentThread().getName() + ":" + atomicInteger);
+    }
+
+    public static void add(){
+        atomicInteger.getAndIncrement();
+    }
+```
+
+> 指令重排
+
+什么是指令重排, 你写的程序, 计算机并不是按着你写的那样顺序执行. 
+
+源代码->编译期优化的重排->指令并行也可能会重排->内存系统也会重排-> 执行
+
+```java
+int x = 1; // 1
+int y = 2; // 2
+x = x + 5; // 3
+y = x * x; // 4
+
+/* 
+我们期望的执行顺序: 1->2->3->4
+计算机执行时候可能: 
+2->1->3->4
+1->3->2->4
+*/
+```
+**处理器在进行指令重排的时候会考虑数据之间的依赖性**
+
+可能造成有影响的结果: a b x y 这四个值得默认都是0
+
+|线程A|线程B|
+|:----:|:----:|
+|x = a|y = b|
+|b = 1|a = 2|
+
+正常结果: x = 0, y = 0
+
+也有可能指令重排的执行顺序如下:
+|线程A|线程B|
+|:----:|:----:|
+|b = 1|a = 2|
+|x = a|y = b|
+结果是: x = 2, y = 1
+
+> volatile避免指令重排
+
+内存屏障. CPU指令. 作用:
+1. 保证操作的特定执行顺序
+2. 保证某些变量的内存可见性
+
+> 单例模式
+1. DCL懒汉式
+```java
+public class LazySingleton {
+    // 懒汉式
+    private LazySingleton(){
+        System.out.println(Thread.currentThread().getName() + ": is creating LazyManSingleton");
+    }
+    // 禁止指令重排
+    private volatile static LazySingleton instance = null;
+    // 双重检测锁模式 懒汉式单例 DCL懒汉式
+    public static LazySingleton getInstance(){
+        if (instance == null){
+            synchronized (LazySingleton.class){
+                if (instance == null) {
+                    instance = new LazySingleton(); // 不是一个原子性操作
+                    /*
+                    1. 分配内存空间
+                    2. 执行构造方法, 初始化对象
+                    3. 把这个对象指向这个空间
+
+                    A线程: 1 -> 2 -> 3
+                    B线程: 1 -> 3 -> 2 此时还没有完成构造
+                     */
+                }
+            }
+        }
+        return instance;
+    }
+    public static void main(String[] args) {
+        for (int i = 1; i <= 10; i++){
+            new Thread(() -> {
+                instance.getInstance();
+            }).start();
+        }
+    }
+}
+```
+2. 饿汉式
+```java
+public class HungrySingleton {
+    // 饿汉式
+    private HungrySingleton(){
+    }
+
+    private static final HungrySingleton instance = new HungrySingleton();
+
+    public HungrySingleton getInstance(){
+        return instance;
+    }
+}
+```
+3. 枚举类型单例(防止反射破坏单例)
+```java
+public enum EnumSingleton {
+
+    INSTANCE;
+
+    public EnumSingleton getInstance(){
+        return INSTANCE;
+    }
+}
+
+class Test{
+    public static void main(String[] args) {
+        EnumSingleton instance1 = EnumSingleton.INSTANCE;
+        EnumSingleton instance2 = EnumSingleton.INSTANCE;
+
+        System.out.println(instance1);
+        System.out.println(instance2);
+    }
+}
+```
+
+> 理解CAS: 比较当前内存中的值和主内存中的值, 如果这个值是期望的则执行, 否则不执行.如果不是就一直循环.
+
+缺点:
+
+1. 自旋锁在循环时会耗时
+2. 一次性只能保证一个共享变量的原子性
+3. 会存在ABA问题
+
+![avatar](picture/auto_suo.png)
+
+> ABA问题
+```java
+public static void main(String[] args) {
+        AtomicInteger atomicInteger = new AtomicInteger(2021);
+        // 如果期望值达到了就更新, 否则就不更新, CAS是CPU的并发原语
+        System.out.println(atomicInteger.compareAndSet(2021, 2022));
+
+        System.out.println(atomicInteger.get());
+        
+        // 捣乱的线程, 将改过的值又改回去了
+        System.out.println(atomicInteger.compareAndSet(2022, 2021));
+
+        // 期望的线程
+        System.out.println(atomicInteger.compareAndSet(2021, 2022));
+
+        System.out.println(atomicInteger.get());
+    }
+```
+![avatar](picture/ABA.png)
+
+> 原子引用(解决ABA问题)
+
+什么是原子引用? 带版本号的原子引用
+
+```java
+public static void main(String[] args) {
+
+        AtomicStampedReference<Integer> atomicInteger =
+                new AtomicStampedReference<Integer>(1, 1);
+        new Thread(() -> {
+            int stamp = atomicInteger.getStamp(); // 获取当前的版本号
+            System.out.println(Thread.currentThread().getName() + "1=>" + stamp);
+
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println(atomicInteger.compareAndSet(1, 2,
+                    atomicInteger.getStamp(), atomicInteger.getStamp() + 1));
+
+            System.out.println(Thread.currentThread().getName() + "2=>" + atomicInteger.getStamp());
+
+            System.out.println(atomicInteger.compareAndSet(2, 1,
+                    atomicInteger.getStamp(), atomicInteger.getStamp() + 1));
+
+            System.out.println(Thread.currentThread().getName() + "3=>" + atomicInteger.getStamp());
+        }, "A").start();
+
+        new Thread(() -> {
+            int stamp = atomicInteger.getStamp(); // 获取当前的版本号
+            System.out.println(Thread.currentThread().getName() + "1=>" + stamp);
+
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println(atomicInteger.compareAndSet(1, 15,
+                    stamp, stamp + 1));
+
+            System.out.println(Thread.currentThread().getName() + "2=>" + atomicInteger.getStamp());
+        }, "B").start();
+    }
+
+```
+
+> 锁
+
+1. 公平锁与非公平锁
+
++ 公平锁: 非常公平, 按着线程的先后顺序执行.
+
++ 非公平锁: 不公平, 执行时间较短的线程会优先执行.
+
+2. 可重入锁: 也叫递归锁
+
+![avatar](picture/kechongrusuo.png)
+
+```java
+public class LockDemo {
+
+    public static void main(String[] args) {
+        Phone phone = new Phone();
+        new Thread(() -> {
+            phone.sms();
+        }, "A").start();
+
+        new Thread(() -> {
+            phone.sms();
+        }, "B").start();
+    }
+    /*执行结果
+    A=>send message
+    A=>call phone 只有A中调用call()方法也执行完后才会释放锁, 然后B才能开始执行
+    B=>send message
+    B=>call phone
+     */
+}
+
+class Phone{
+    public synchronized void sms(){
+        System.out.println(Thread.currentThread().getName() + "=>send message");
+        call(); // 这里也有锁
+    }
+
+    public synchronized void call(){
+        System.out.println(Thread.currentThread().getName() + "=>call phone");
+    }
+}
+
+```
+
+3. 自旋锁
+
+```java
+public class SpinLockDemo {
+    AtomicReference<Thread> atomicReference = new AtomicReference<>();
+    // 加锁
+    public void myLock(){
+        Thread thread = Thread.currentThread();
+        System.out.println(thread.getName() + " is locking");
+        // 自旋锁
+        while (atomicReference.compareAndSet(null, thread)){
+
+        }
+    }
+
+    // 解锁
+    public void myUnLock(){
+        Thread thread = Thread.currentThread();
+        System.out.println(thread.getName() + " is unlocking");
+        atomicReference.compareAndSet(thread, null);
+    }
+}
+```
+
+4. 死锁
