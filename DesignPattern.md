@@ -904,7 +904,7 @@ class SchoolManager {
 
 ![avatar](picture/composite.png)
 
-## 设计模式
+## 2. 设计模式
 
 > 设计模式类型
 
@@ -912,3 +912,171 @@ class SchoolManager {
 1) 创建型模式**单例模式**、抽象工厂模式、原型模式、建造者模式、**工厂模式**。
 2) 结构型模式：适配器模式、桥接模式、**装饰模式**、组合模式、外观模式、享元模式、**代理模式**。
 3) 行为型模式：模版方法模式、命令模式、访问者模式、迭 代器模式、**观察者模式**、中介者模式、备忘录模式、解释器模式（Interpreter模式）、状态模式、策略模式、职责链模式责任链模式。
+
+### 2.1 单例模式
+
+所谓类的单例设计模式，就是采取一定的方法保证在整个的软件系统中，对某个类只能存在一个对象实例，并且该类只提供一个取得其对象实例的方法静态方法
+
+> 饿汉式(普通)
+```java
+/*
+1. 饿汉式单例模式
+ */
+class Singleton{
+    // 1. 私有化构造方法
+    private Singleton(){
+
+    }
+
+    // 2. 在类内部创建对象实例
+    private static Singleton instance = new Singleton();
+
+    // 3. 对外暴露公共静态方法, 返回实例对象
+    public static Singleton getInstance(){
+        return instance;
+    }
+}
+```
+> 饿汉式(静态代码块)
+```java
+/*
+2. 饿汉式(静态代码块)
+ */
+class Singleton2{
+    private Singleton2(){
+
+    }
+
+    private static Singleton2 instance;
+
+    // 静态代码块只在类加载的时候初始化一次
+    static{
+        instance = new Singleton2();
+    }
+
+    public static Singleton2 getInstance(){
+        return instance;
+    }
+}
+```
+> 懒汉式(普通)
+```java
+/*
+3. 懒汉式(普通)
+ */
+class Singleton3{
+
+    private Singleton3(){
+        System.out.println(Thread.currentThread().getName() + "正在创建Singleton3");
+    }
+
+    private static Singleton3 instance;
+
+    /*
+    if (instance == null) 如果此处有多个线程同时执行会出现线程不安全问题
+     */
+    public static Singleton3 getInstance(){
+        if (instance == null)
+            instance = new Singleton3();
+        return instance;
+    }
+}
+```
+
+```java
+/*
+4. 懒汉式(线程不安全)
+*/
+class Singleton4{
+
+    private Singleton4(){
+        System.out.println(Thread.currentThread().getName() + "正在创建Singleton3");
+    }
+
+    private static Singleton4 instance;
+
+    /*
+    if (instance == null) 如果此处有多个线程同时执行会出现线程不安全问题
+    解决方案: 使用synchronized同步方法
+    缺点: 执行效率太低
+     */
+    public static synchronized Singleton4 getInstance(){
+        if (instance == null)
+            instance = new Singleton4();
+        return instance;
+    }
+}
+```
+> 懒汉式(双重检测)
+```java
+/*
+6. 懒汉式(双重检测)
+ */
+class Singleton6{
+
+    private Singleton6(){
+        System.out.println(Thread.currentThread().getName() + "正在创建Singleton6");
+    }
+
+    private static volatile Singleton6 instance;
+
+    /*
+    if (instance == null) 如果此处有多个线程同时执行会出现线程不安全问题
+    解决方案: 使用双重检测和volatile(轻量级同步机制), 当某一个线程创建了instance实例后
+    volatile会将其同步到主存(即可见性), 其他线程也可以看到instance创建
+     */
+    public static Singleton6 getInstance(){
+        if (instance == null) {
+            synchronized (Singleton6.class){
+                if (instance == null){
+                    instance = new Singleton6();
+                }
+            }
+        }
+        return instance;
+    }
+}
+```
+
+> 静态内部类
+```java
+/*
+7. 静态内部类
+ */
+class Singleton7{
+
+    private Singleton7(){
+        System.out.println(Thread.currentThread().getName() + "正在创建Singleton7");
+    }
+
+    /*
+    静态内部类: 当Singleton7在加载的时候, SingletonInstance不会马上加载, 只有getInstance()
+    被调用的时候, SingletonInstance才会被加载, 而且只会加载一次, 加载的时候也是线程安全的
+     */
+    private static class SingletonInstance{
+        private static final Singleton7 INSTANCE = new Singleton7();
+    }
+
+    public static Singleton7 getInstance(){
+        return SingletonInstance.INSTANCE;
+    }
+}
+```
+> 枚举
+```java
+public class SingletonTest8 {
+
+    public static void main(String[] args) {
+        Singleton8 instance1 = Singleton8.INSTANCE;
+        Singleton8 instance2 = Singleton8.INSTANCE;
+        System.out.println(instance1 == instance2);
+    }
+}
+
+/*
+8. 枚举
+*/
+enum Singleton8{
+    INSTANCE;
+}
+```
