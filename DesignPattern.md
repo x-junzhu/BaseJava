@@ -1370,6 +1370,457 @@ private static Calendar createCalendar(TimeZone zone,
 工厂模式小结
 1) 工厂模式的意义将实例化对象的代码提取出来，放到一个类中统一管理和维护，达到和主项目的依赖关系的解耦。从而提高项目的扩展和维护性。
 2) 三种工厂模式简单工厂模式、工厂方法模式、抽象工厂模式
-3)设计模式的依赖抽象原则创建对象实例时，不要直接new 类, 而是把这个new类的动作放在一个工厂的方法
+3) 设计模式的依赖抽象原则创建对象实例时，不要直接new 类, 而是把这个new类的动作放在一个工厂的方法
 中，并返回。有的书上说，变量不要直接持有具体类的引用。
 不要让类继承具体类，而是继承抽象类或者是实现interface(接口不要覆盖基类中已经实现的方法)
+
+## 2.3 原型模式
+
+基本介绍
+1) 原型模式Prototype模式是指：用原型实例指定创建对象的种类，并且通过拷贝这些原型创建新的对象
+2) 原型模式是一种创建型设计模式，允许一个对象再创建另外一个可定制的对象无需知道如何创建的细节
+3) 工作原理是通过将一个原型对象传给那个要发动创建的对象，这个要发动创建的对象通过请求原型对象拷贝它们自己来实施创建，即对象
+4) 形象的理解：孙大圣拔出猴毛，变出其它孙大圣
+
+问题引入: 克隆羊问题  
+现在有一只羊姓名为:tom, 年龄为：1颜色为白色，请编写程序创建和tom羊属性完全相同的10只羊。
+
+代码分析1:
+```java
+public static void main(String[] args) {
+        Sheep sheep = new Sheep("Tom", 1, "白色");
+
+        Sheep sheep1 = new Sheep(sheep.getName(), sheep.getAge(), sheep.getColor());
+        Sheep sheep2 = new Sheep(sheep.getName(), sheep.getAge(), sheep.getColor());
+        Sheep sheep3 = new Sheep(sheep.getName(), sheep.getAge(), sheep.getColor());
+
+        System.out.println(sheep);
+        System.out.println(sheep1);
+        System.out.println(sheep2);
+        System.out.println(sheep3);
+
+}
+```
+传统的方式的优缺点
+1) 优点是比较好理解，简单易操作。
+2) 在创建新的对象时总是需要重新获取原始对象的属性，如果创建的对象比较复杂时，效率较低
+3) 总是需要重新初始化对象，而不是动态地获得对象运行时的状态,不够灵活
+4) 改进的思路分析  
+思路: Java中Object类是所有类的根类Object类提供了一个 clone()方法，该方法可以将一个Java对象复制一份，但是需要实现clone的Java类必须要实现一个接口Cloneable该接口表示该类能够复制且具有复制的能力 => 原型模式
+
+```java
+    /**在需要克隆的类中实现Clone接口
+     * 克隆该实例, 使用默认的clone方法来完成
+     * @return
+     */
+    @Override
+    protected Object clone(){
+        Sheep sheep = null;
+        try {
+            sheep = (Sheep)super.clone();
+        } catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+        return sheep;
+    }
+
+    // main方法中
+    public static void main(String[] args) {
+        Sheep sheep = new Sheep("Mike", 1, "白色");
+        Sheep sheep2 = (Sheep)sheep.clone();
+        Sheep sheep3 = (Sheep)sheep.clone();
+
+        sheep.friend = new Sheep("Jack", 2, "黑色");
+        System.out.println("sheep" + sheep + "sheep friend=" + sheep.friend.hashCode());
+        System.out.println("sheep1" + sheep2 + "sheep2 friend=" + sheep.friend.hashCode());
+
+    }
+```
+
+注意:  
+此处的main方法中的clone方法属于浅拷贝, 即sheep.friend该对象在复制的过程中多有的对象都共用一份, 其他的对象都有一个指针指向第一个sheep.friend对象
+
+原型模式在Spring框架中源码分析
+1) Spring 中原 型 bean 的创建，就是原型模式的应用
+2) 代码分析 +Debug 源码  
+<bean id= id="id01" class="com.atguigu.spring.bean.Monster" scope="prototype">  
+其中scope属性中的prototype就是原型模式
+
+> 浅拷贝和深拷贝
+
+**浅拷贝的介绍** 
+1) 对于数据类型是基本数据类型的成员变量，浅拷贝会直接进行值传递，也就是将该属性值复制一份给新的对象。
+2) 对于数据类型是引用数据类型的成员变量，比如说成员变量是某个数组、某个类的对象等，那么浅拷贝会进行引用传递，也就是只是将该成员变量的引用值（内存地址）复制一份给新的对象。因为实际上两个对象的该成员变量都指向同一个
+实例。在这种情况下，在一个对象中修改该成员变量会影响到另一个对象的该成员变量值
+3) 前面我们克隆羊就是浅拷贝
+4) 浅拷贝是使用默认的clone()方法来实现 sheep = (Sheep) super.clone ();
+
+**深拷贝基本介绍**
+1) 复制对象的所有基本数据类型的成员变量值
+2) 为所有引用数据类型的成员变量申请存储空间，并复制每个引用数据类型成员变量所引用的对象，直到该对象可达的所有对象。也就是说，对象进行深拷贝要对整个对象进行拷贝
+3) 深拷贝实现方式1：重写clone方法来实现深拷贝
+4) 深拷贝实现方式2：通过对象序列化实现深拷贝**推荐**
+
+代码分析:
+```java
+public class DeepPrototype implements Serializable, Cloneable {
+
+    private String name;
+    private DeepCloneableTarget deepCloneableTarget;
+
+    public DeepPrototype() {
+    }
+
+    public DeepPrototype(String name, DeepCloneableTarget deepCloneableTarget) {
+        this.name = name;
+        this.deepCloneableTarget = deepCloneableTarget;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public DeepCloneableTarget getDeepCloneableTarget() {
+        return deepCloneableTarget;
+    }
+
+    public void setDeepCloneableTarget(DeepCloneableTarget deepCloneableTarget) {
+        this.deepCloneableTarget = deepCloneableTarget;
+    }
+
+    // 深拷贝 方式1使用clone方法
+    @Override
+    protected Object clone() {
+
+        Object deep = null;
+        DeepPrototype deepPrototype = null;
+        try {
+            // 首先完成对基本属性的克隆, 包括String类型
+            deep = super.clone();
+            // 单独处理引用类型的数据
+            deepPrototype = (DeepPrototype) deep;
+            deepPrototype.deepCloneableTarget = (DeepCloneableTarget) deepCloneableTarget.clone();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return deepPrototype;
+    }
+
+    // 深拷贝 方式2通过对象的序列化实现深拷贝(推荐)
+    public Object deepClone(){
+        // 创建流对象
+        ByteArrayOutputStream bos = null;
+        ObjectOutputStream oos = null;
+        ByteArrayInputStream bis = null;
+        ObjectInputStream ois = null;
+
+        DeepPrototype copyObj = null;
+        try {
+
+            // 序列化
+            bos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(bos);
+            // 当前对象以对象流的方式输出
+            oos.writeObject(this);
+
+            // 反序列化
+            bis = new ByteArrayInputStream(bos.toByteArray());
+            ois = new ObjectInputStream(bis);
+
+            copyObj = (DeepPrototype)ois.readObject();
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            try {
+                ois.close();
+                bis.close();
+                oos.close();
+                bos.close();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return copyObj;
+    }
+}
+```
+
+原型模式的注意事项和细节
+1) 创建新的对象比较复杂时，可以利用原型模式简化对象的创建过程，同时也能够提高效率
+2) 不用重新初始化对象，而是动态地获得对象运行时的状态
+3) 如果原始对象发生变化增加或者减少属性，其它克隆对象的也会发生相应的变化无需修改代码
+4) 在实现深克隆的时候可能需要比较复杂的代码
+5) 缺点：需要为每一个类配备一个克隆方法，这对全新的类来说不是很难，但对已有的类进行改造时，需要修改其源代码，违背了ocp原则
+
+## 2.4 代理模式
+
+代理模式的基本介绍
+1) 代理模式：为一个对象提供一个替身，以控制对这个对象的访问。即通过代理对象访问目标对象这样做的好处是可以在目标对象实现的基础上增强额外的功能操作即扩展目标对象的功能。
+2) 被代理的对象可以是远程对象、创建开销大的对象或需要安全控制的对象
+3) 代理模式有不同的形式, 主要有三种静态代理、动态代理 (JDK代理、接口代理和Cglib代理可以在内存动态的创建对象，而不需要实现接口，他是属于动态代理的范畴。
+4) 代理模式示意图
+
+> 静态代理
+
+静态代码模式的基本介绍:  
+静态代理在使用时需要定义接口或者父类被代理对象即目标对象与代理对象一起实现相同的接口或者是继承相同父类  
+应用实例  
+具体要求
+1) 定义一个接口ITeacherDao
+2) 目标对象TeacherDAO实现接口ITeacherDAO
+3) 使用静态代理方式 就需要在代理对象TeacherDAOProxy 中也实现ITeacherDAO
+4) 调用的时候通过调用代理对象的方法来调用目标对象
+5) 特别提醒：代理对象与目标对象要实现相同的接口然后通过调用相同的方法来调用目标对象的方法。
+
+![avatar](picture/StaticProxy.png)
+
+代码分析:
+
+ITeacherDao.java
+```java
+public interface ITeacherDao {
+    // 授课方法
+    public void teach();
+}
+```
+TeacherDao.java
+```java
+public class TeacherDao implements ITeacherDao {
+    @Override
+    public void teach() {
+        System.out.println("老师正在授课...");
+    }
+}
+```
+TeacherProxy.java
+```java
+// 静态代理对象
+public class TeacherProxy implements ITeacherDao{
+
+    // 目标对象, 通过接口聚合
+    private ITeacherDao iTeacherDao;
+
+    public TeacherProxy(ITeacherDao iTeacherDao) {
+        this.iTeacherDao = iTeacherDao;
+    }
+
+    @Override
+    public void teach() {
+        System.out.println("开始代理, 完成某些操作...");
+        iTeacherDao.teach();
+        System.out.println("代理结束");
+    }
+}
+```
+测试类
+```java
+public class ClientTest {
+    public static void main(String[] args) {
+        // 创建目标对象(被代理对象)
+        TeacherDao teacherDao = new TeacherDao();
+
+        // 创建代理对象
+        TeacherProxy teacherProxy = new TeacherProxy(teacherDao);
+
+        // 通过代理对象调用被代理对象内的方法
+        // 执行的是代理对象的方法, 但是在代理对象内调用被代理对象的方法
+        teacherProxy.teach();
+
+    }
+}
+```
+
+静态代理优缺点:  
+1) 优点：在不修改目标对象的功能前提下,能通过代理对象对目标功能扩展
+2) 缺点：因为代理对象需要与目标对象实现一样的接口 所以会有很多代理类
+3) 一旦接口增加方法目标对象与代理对象都要维护
+
+> 动态代理
+
+动态代理模式的基本介绍:  
+1) 代理对象不需要实现接口，但是目标对象要实现接口否则不能用动态代理
+2) 代理对象的生成是利用JDK的API，动态的在内存中构建代理对象
+3) 动态代理也叫做JDK代理、接口代理
+
+**JDK中生成代理对象的API**  
+1) 代理类所在包java.lang.reflect.Proxy
+2) JDK实现代理只需要使用newProxyInstance方法但是该方法需要接收三个参数完整的写法是:  
+static Object newProxyInstance (ClassLoader loader, Class<?>[]interfaces, InvocationHandler h)
+
+类图
+
+![avatar](picture/DynamicProxy.png)
+
+代码分析:  
+ITeacherDao.java
+```java
+public interface ITeacherDao {
+
+    // 授课方法
+    public void teach();
+    public void sayHello(String name);
+}
+```
+TeacherDao.java
+```java
+public class TeacherDao implements ITeacherDao {
+
+    @Override
+    public void teach() {
+        System.out.println("老师正在授课中...");
+    }
+
+    @Override
+    public void sayHello(String name) {
+        System.out.println("Hello " + name);
+    }
+}
+```
+ProxyFactory.java
+```java
+public class ProxyFactory {
+
+    // 维护一个目标对象
+    private Object target;
+
+    public ProxyFactory(Object target) {
+        this.target = target;
+    }
+
+    /**
+     * 给目标对象生成一个代理对象
+     * 1. ClassLoader loader: 指定当前目标对象使用的类加载器, 获取加载器的方法固定
+     * 2. Class<?>[] interfaces: 要被代理对象(目标对象)的实现接口类型
+     * 3. InvocationHandler h: 事件处理, 执行目标对象的方法时, 会触发事件处理器方法
+     *                          会把当前执行的目标对象方法作为参数
+     * target.getClass().getClassLoader()通过反射动态生成代理对象
+     * @return
+     */
+    public Object getProxyInstance(){
+        return Proxy.newProxyInstance(target.getClass().getClassLoader(),
+                target.getClass().getInterfaces(), new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        System.out.println("JDK动态代理开始...");
+                        // 通过反射机制调用目标对象的方法
+                        Object obj = method.invoke(target, args);
+                        return obj;
+                    }
+                });
+    }
+}
+```
+测试类
+```java
+public class ClientTestDynamic {
+
+    public static void main(String[] args) {
+        // 创建目标对象
+        ITeacherDao target = new TeacherDao();
+
+        // 给目标对象创建代理对象
+        ProxyFactory proxyFactory = new ProxyFactory(target);
+
+        ITeacherDao teacherDao = (ITeacherDao)proxyFactory.getProxyInstance();
+        teacherDao.teach();
+
+//        System.out.println(teacherDao);
+
+        teacherDao.sayHello("王小胖");
+
+    }
+}
+```
+
+**Cglib动态代理生成代理对象** 
+
+Cglib代理模式的基本介绍
+1) 静态代理和JDK代理模式都要 求目标对象是实现一个接口但是有时候目标对象只是一个单独的对象并没有实现任何的接口这个时候可使用目标对象子类来实现代理这就是Cglib 代理
+2) Cglib代理也叫作子类代理它是在内存中构建一个子类对象从而实现对目标对象功能扩展, 有些书也将Cglib代理归属到动态代理。
+3) Cglib是一个强大的高性能的代码生成包它可以在运行期扩展java类与实现java接口它广泛的被许多AOP的框架使用例如Spring AOP实现方法拦截
+4) 在AOP编程中如何选择代理模式：
+```
+1. 目标对象需要实现接口用JDK代理
+2. 目标对象不需要实现接口用Cglib代理
+```
+5) Cglib包的底层是通过使用字节码处理框架 ASM 来转换字节码并生成新的类
+
+注意:
+1) 需要引入cglib的jar文件
+2) 在内存中动态构建子类，注意代理的类不能为final，否 则报错java.lang.IllegalArgumentException
+3) 目标对象的方法如果为final/static, 那么就不会被拦截即不会执行目标对象额外的业务方法
+
+![avatar](picture/CglibProxy.png)
+
+代码分析:
+TeacherDao.java
+```java
+public class TeacherDao {
+
+    public void teach(){
+        System.out.println("老师正在授课... cglib代理不需要实现接口");
+    }
+}
+```
+ProxyFactory.java
+```java
+public class ProxyFactory implements MethodInterceptor {
+
+    // 维护一个目标对象
+    private Object object;
+
+    // 传入一个被代理的对象
+    public ProxyFactory(Object object) {
+        this.object = object;
+    }
+
+    // 返回一个代理对象, 当前target的目标对象
+    public Object getProxyInstance(){
+        // 1. 创建工具类
+        Enhancer enhancer = new Enhancer();
+        // 2. 设置父类
+        enhancer.setSuperclass(object.getClass());
+        // 3. 设置回调函数
+        enhancer.setCallback(this);
+        // 4. 创建子类对象, 即代理对象
+        return enhancer.create();
+    }
+
+    // 重写intercept方法, 会调用目标函数的方法
+    @Override
+    public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
+        System.out.println("Cglib代理模式开始...");
+        Object obj = method.invoke(object, objects);
+        System.out.println("Cglib代理模式提交...");
+        return obj;
+    }
+}
+```
+ClientTestCglib.java
+```java
+public class ClientTestCglib {
+
+    public static void main(String[] args) {
+        // 创建目标对象
+        TeacherDao teacherDao = new TeacherDao();
+
+        // 获取到代理对象, 并将目标对象传递到代理对象
+        ProxyFactory proxyFactory = new ProxyFactory(teacherDao);
+        TeacherDao proxyInstance = (TeacherDao)proxyFactory.getProxyInstance();
+        // 执行代理对象的方法, 触发intecept方法, 从而实现对代理对象的方法调用
+        proxyInstance.teach();
+    }
+}
+```
+
+> 代理模式Proxy的变体
+
+几种常见的代理模式介绍,几种变体
+1) 防火墙代理内网通过代理穿透防火墙，实现对公网的访问。
+2) 缓存代理,比如: 当请求图片文件等资源时，先到缓存代理取，如果取到资源则ok, 如果取不到资源，再到公网或者数据库取，然后缓存。
+3) 远程代理,远程对象的本地代表，通过它可以把远程对象当本地对象来调用。远程代理通过网络和真正的远程对象沟通信息。
+4) 同步代理主要使用在多线程编程中，完成多线程间同步工作
