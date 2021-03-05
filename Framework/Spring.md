@@ -33,7 +33,7 @@ GitHub : https://github.com/spring-projects
 
 ![avatar](picture/spring_introduction.png)
 
-## 2 IOC理论推导
+## 2 IOC
 
 > IoC基础
 
@@ -433,3 +433,455 @@ public void test2(){
 }
 ```
 关于这种Java类的配置方式，我们在之后的SpringBoot 和 SpringCloud中还会大量看到，我们需要知道这些注解的作用即可！
+
+## 3 AOP
+
+Spring的底层是通过代理模式实现的, 所以在了解代理模式.  
+
+### 3.1 AOP的底层实现-代理模式
+
+代理模式: 
++ 静态代理
++ 动态代理(包括JDK动态代理和Cglib动态代理)
+
+> 静态代理
+
+静态代理角色分析
+
++ 抽象角色: 一般使用接口或者抽象类来实现
++ 真实角色: 被代理的角色
++ 代理角色: 代理真实角色; 代理真实角色后, 一般会做一些附属的操作.
++ 客户: 使用代理角色来进行一些操作.
+
+代码实现: 模拟客户通过中介租房  
+Rent.java: 即抽象角色
+```java
+//抽象角色：租房
+public interface Rent {
+   public void rent();
+}
+```
+Host.java: 即真实角色
+```java
+//真实角色: 房东，房东要出租房子
+public class Host implements Rent{
+   public void rent() {
+       System.out.println("房屋出租");
+  }
+}
+```
+Proxy.java: 即代理角色
+```java
+//代理角色：中介
+public class Proxy implements Rent {
+
+   private Host host;
+   public Proxy() { }
+   public Proxy(Host host) {
+       this.host = host;
+  }
+
+   //租房
+   public void rent(){
+       seeHouse();
+       host.rent();
+       fare();
+  }
+   //看房
+   public void seeHouse(){
+       System.out.println("带房客看房");
+  }
+   //收中介费
+   public void fare(){
+       System.out.println("收中介费");
+  }
+}
+```
+Client.java: 即客户
+```java
+//客户类，一般客户都会去找代理！
+public class Client {
+   public static void main(String[] args) {
+       //房东要租房
+       Host host = new Host();
+       //中介帮助房东
+       Proxy proxy = new Proxy(host);
+
+       //你去找中介！
+       proxy.rent();
+  }
+}
+```
+分析：在这个过程中，你直接接触的就是中介，就如同现实生活中的样子，你看不到房东，但是你依旧租到了房东的房子通过代理，这就是所谓的代理模式，程序源自于生活，所以学编程的人，一般能够更加抽象的看待生活中发生的事情。
+
+静态代理的好处:
+- 可以使得我们的真实角色更加纯粹. 不再去关注一些公共的事情.
+- 公共的业务由代理来完成. 实现了业务的分工
+- 公共业务发生扩展时变得更加集中和方便
+
+缺点 :
+
+- 类多了, 多了代理类, 工作量变大了. 开发效率降低
+
+> 动态代理
+
+- 动态代理的角色和静态代理的一样.
+- 动态代理的代理类是动态生成的. 静态代理的代理类是我们提前写好的
+- 动态代理分为两类: 一类是基于接口动态代理, 一类是基于类的动态代理
+    + 基于接口的动态代理----JDK动态代理
+    + 基于类的动态代理--cglib
+    + 现在用的比较多的是 javasist 来生成动态代理
+    + 我们这里使用JDK的原生代码来实现，其余的道理都是一样的！
+
+**JDK的动态代理需要了解两个类**
+
+核心: InvocationHandler和Proxy
+
+1. InvocationHandler: 调用处理程序
+```java
+Object invoke(Object proxy, 方法 method, Object[] args);
+//参数
+//proxy - 调用该方法的代理实例
+//method -所述方法对应于调用代理实例上的接口方法的实例。方法对象的声明类将是该方法声明的接口，它可以是代理类继承该方法的代理接口的超级接口。
+//args -包含的方法调用传递代理实例的参数值的对象的阵列，或null如果接口方法没有参数。原始类型的参数包含在适当的原始包装器类的实例中，例如java.lang.Integer或java.lang.Boolean 
+```
+
+2. Proxy: 代理
+
+提供了创建动态代理类和实例的静态方法
+```java
+public static Object newProxyInstance(ClassLoader loader, Class<?>[] interfaces,  InvocationHandler h);
+```
+
+代码分析: 模拟客户通过中介租房
+```java
+// 租房接口
+public interface Rent {
+    public void rent();
+}
+```
+
+```java
+public class Host implements Rent {
+    public void rent() {
+        System.out.println("房东出租房子");
+    }
+}
+```
+
+```java
+public class ProxyInvocationHandler implements InvocationHandler {
+
+    // 被代理的接口
+    private Object object;
+
+    public ProxyInvocationHandler(Object object) {
+        this.object = object;
+    }
+
+    public Object getProxy(){
+        return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+                object.getClass().getInterfaces(), this);
+    }
+
+    // 处理代理实例, 并返回结果
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 动态代理的本质就是使用反射的机制
+        System.out.println("this is jdk dynamic proxy...");
+        printLog(method.getName());
+        Object obj = method.invoke(object, args);
+        return obj;
+    }
+
+    public void printLog(String msg){
+        System.out.println("执行了" + msg + "方法");
+    }
+
+}
+```
+
+```java
+public class TestDynamic {
+
+    public static void main(String[] args) {
+        // 真实角色
+        Rent host = new Host();
+
+        // 代理角色
+        ProxyInvocationHandler pih = new ProxyInvocationHandler(host);
+        // proxy就是动态生成的
+        Rent proxy = (Rent) pih.getProxy();
+        proxy.rent();
+
+    }
+}
+```
+
+动态代理的优点:  
+静态代理有的它都有，静态代理没有的，它也有！
+
+- 可以使得我们的真实角色更加纯粹 . 不再去关注一些公共的事情 .
+
+- 公共的业务由代理来完成 . 实现了业务的分工 ,
+
+- 公共业务发生扩展时变得更加集中和方便 .
+
+- 一个动态代理 , 一般代理某一类业务
+
+- 一个动态代理可以代理多个类，代理的是接口！
+
+**注: 也可参考DesignPattern.md里面的代理模式**
+
+### 3.2 AOP理解
+
+> 什么是AOP
+
+AOP（Aspect Oriented Programming）意为：面向切面编程，通过预编译方式和运行期动态代理实现程序功能的统一维护的一种技术。AOP是OOP的延续，是软件开发中的一个热点，也是Spring框架中的一个重要内容，是函数式编程的一种衍生范型。利用AOP可以对业务逻辑的各个部分进行隔离，从而使得业务逻辑各部分之间的耦合度降低，提高程序的可重用性，同时提高了开发的效率。
+
+> Aop在Spring中的作用
+
+**提供声明式事务；允许用户自定义切面**
+
+以下名词需要了解下：
+
+- 横切关注点：跨越应用程序多个模块的方法或功能。即是，与我们业务逻辑无关的，但是我们需要关注的部分，就是横切关注点。如日志 , 安全 , 缓存 , 事务等等 ....
+- 切面（ASPECT）：横切关注点 被模块化 的特殊对象。即，它是一个类。
+- 通知（Advice）：切面必须要完成的工作。即，它是类中的一个方法。
+- 目标（Target）：被通知对象。
+- 代理（Proxy）：向目标对象应用通知之后创建的对象。
+- 切入点（PointCut）：切面通知 执行的 “地点”的定义。
+- 连接点（JointPoint）：与切入点匹配的执行点。
+
+![avatar](picture/spring_aspect.png)
+
+SpringAOP中，通过Advice定义横切逻辑，Spring中支持5种类型的Advice:
+
+![avatar](picture/spring_aop_class.png)
+
+即Aop在不改变原有代码的情况下, 去增加新的功能
+
+**【重点】使用AOP织入，需要导入一个依赖包！**
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.aspectj/aspectjweaver -->
+<dependency>
+   <groupId>org.aspectj</groupId>
+   <artifactId>aspectjweaver</artifactId>
+   <version>1.9.4</version>
+</dependency>
+```
+
+1. 通过Spring API实现
+
+首先编写我们的业务接口和实现类
+```java
+public interface UserService {
+
+    public void add();
+    public void delete();
+    public void update();
+    public void query();
+}
+```
+```java
+public class UserServiceImpl implements UserService {
+    public void add() {
+        System.out.println("add");
+    }
+
+    public void delete() {
+        System.out.println("delete");
+    }
+
+    public void update() {
+        System.out.println("update");
+    }
+
+    public void query() {
+        System.out.println("query");
+    }
+}
+```
+然后去写我们的增强类 , 我们编写两个 , 一个前置增强 一个后置增强
+
+```java
+public class BeforeLog implements MethodBeforeAdvice {
+
+    /**
+     *
+     * @param method: 要执行的目标对象方法
+     * @param objects: 参数
+     * @param o: 目标对象
+     * @throws Throwable: 异常
+     */
+    public void before(Method method, Object[] objects, Object o) throws Throwable {
+        System.out.println(o.getClass().getName() + "的" + method.getName() + "方法执行了");
+    }
+}
+```
+
+```java
+public class AfterLog implements AfterReturningAdvice {
+    /**
+     *
+     * @param o: 可以拿到执行后的返回值
+     * @param method
+     * @param objects
+     * @param o1
+     * @throws Throwable
+     */
+    public void afterReturning(Object o, Method method, Object[] objects, Object o1) throws Throwable {
+        System.out.println(method.getName() + "方法执行了" + "返回结果为=" + o);
+    }
+}
+```
+aop对于的xml配置文件
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+    <bean id="userService" class="edu.fzu.service.UserServiceImpl"></bean>
+    <bean id="beforeLog" class="edu.fzu.log.BeforeLog"></bean>
+    <bean id="afterLog" class="edu.fzu.log.AfterLog"></bean>
+
+    <!-- 第一种实现aop方式(Spring的API接口):配置aop -->
+    <aop:config>
+        <!-- 配置切入点: expression表达式 execution: 是要执行的位置-->
+        <aop:pointcut id="pointcut" expression="execution(* edu.fzu.service.UserServiceImpl.*(..))"></aop:pointcut>
+        <!-- 执行环绕 -->
+        <aop:advisor advice-ref="afterLog" pointcut-ref="pointcut"/>
+        <aop:advisor advice-ref="beforeLog" pointcut-ref="pointcut"/>
+    </aop:config>
+</beans>
+```
+测试类
+```java
+public class TestAop {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+
+        UserService userService = context.getBean("userService", UserService.class);
+        userService.add();
+    }
+}
+```
+
+2. 自定义类来实现Aop
+```java
+public class OtherMethod {
+
+    public void before(){
+        System.out.println("方法执行前...");
+    }
+
+    public void after(){
+        System.out.println("方法执行后...");
+    }
+}
+```
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+    <bean id="userService" class="edu.fzu.service.UserServiceImpl"></bean>
+    <bean id="beforeLog" class="edu.fzu.log.BeforeLog"></bean>
+    <bean id="afterLog" class="edu.fzu.log.AfterLog"></bean>
+
+    <!-- 第二种实现aop方式: 自定义类 -->
+    <bean id="other" class="edu.fzu.other.OtherMethod"></bean>
+
+    <aop:config>
+        <aop:aspect ref="other">
+            <!-- 切入点 -->
+            <aop:pointcut id="point" expression="execution(* edu.fzu.service.UserServiceImpl.*(..))"/>
+            <!-- 通知 -->
+            <aop:before method="before" pointcut-ref="point"></aop:before>
+            <aop:after method="after" pointcut-ref="point"></aop:after>
+        </aop:aspect>
+    </aop:config>
+
+</beans>
+```
+
+3. 使用注解实现
+
+第一步：编写一个注解实现的增强类
+```java
+// 使用注解方式实现AOP
+@Aspect // 标注该类是一个切面
+public class AnnotationPointCut {
+
+    @Before("execution(* edu.fzu.service.UserServiceImpl.*(..))")
+    public void before(){
+        System.out.println("这是方法执行before的操作...");
+    }
+
+    @After("execution(* edu.fzu.service.UserServiceImpl.*(..))")
+    public void after(){
+        System.out.println("这是方法执行after的操作...");
+    }
+
+    // 在环绕增强中, 我们可以给定一个参数, 代表我们要获取处理的切入点
+    @Around("execution(* edu.fzu.service.UserServiceImpl.*(..))")
+    public void around(ProceedingJoinPoint pj) throws Throwable {
+        System.out.println("before around");
+        // 执行的方法
+        Object proceed = pj.proceed();
+
+        System.out.println("after around");
+    }
+}
+```
+第二步：在Spring配置文件中，注册bean，并增加支持注解的配置
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        https://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+    <bean id="userService" class="edu.fzu.service.UserServiceImpl"></bean>
+    <bean id="beforeLog" class="edu.fzu.log.BeforeLog"></bean>
+    <bean id="afterLog" class="edu.fzu.log.AfterLog"></bean>
+
+    <!-- 第三种实现aop方式: 注解 -->
+    <bean id="annotationPointcut" class="edu.fzu.other.AnnotationPointCut"></bean>
+    <!-- 开启注解支持 -->
+    <aop:aspectj-autoproxy/>
+    <context:annotation-config/>
+
+</beans>
+```
+aop:aspectj-autoproxy：说明
+```xml
+通过aop命名空间的<aop:aspectj-autoproxy />声明自动为spring容器中那些配置@aspectJ切面的bean创建代理，织入切面。当然，spring 在内部依旧采用AnnotationAwareAspectJAutoProxyCreator进行自动代理的创建工作，但具体实现的细节已经被<aop:aspectj-autoproxy />隐藏起来了
+
+<aop:aspectj-autoproxy />有一个proxy-target-class属性，默认为false，表示使用jdk动态代理织入增强，当配为<aop:aspectj-autoproxy  poxy-target-class="true"/>时，表示使用CGLib动态代理技术织入增强。不过即使proxy-target-class设置为false，如果目标类没有声明接口，则spring将自动使用CGLib动态代理。
+```
