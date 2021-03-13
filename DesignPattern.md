@@ -1824,3 +1824,352 @@ public class ClientTestCglib {
 2) 缓存代理,比如: 当请求图片文件等资源时，先到缓存代理取，如果取到资源则ok, 如果取不到资源，再到公网或者数据库取，然后缓存。
 3) 远程代理,远程对象的本地代表，通过它可以把远程对象当本地对象来调用。远程代理通过网络和真正的远程对象沟通信息。
 4) 同步代理主要使用在多线程编程中，完成多线程间同步工作
+
+## 2.5 观察者模式
+
+> 问题引入
+
+天气预报项目需 求 具体要求如下：
+1) 气象站可以将每天测量到的温度，湿度，气压等等以公告的形式发布出去。比如发布到自己的网站或第三方
+2) 需要设计开放型API，便于其他第三方也能接入气象站获取数据。
+3) 提供温度、气压和湿度的接口
+4) 测量数据更新时，要能实时的通知给第三方
+
+1. **天气预报设计方案1-普通方案**
+
+类图
+
+![avatar](picture/common_observer.png)
+
+源码分析
+
+```java
+/**
+ * 类的核心
+ * 1. 包含最新的天气情况信息
+ * 2. 含有CurrentConditions对象
+ * 3. 当前数据更新时 就主动调用 CurrentConditions对象的update（含有display）方法
+ */
+public class WeatherData {
+
+	// 温度
+	private float temperature;
+	// 气压
+	private float pressure;
+	// 湿度
+	private float humidity;
+
+	private CurrentConditions currentConditions;
+
+	public WeatherData(CurrentConditions currentConditions) {
+		this.currentConditions = currentConditions;
+	}
+
+	public float getTemperature() {
+		return temperature;
+	}
+
+	public float getPressure() {
+		return pressure;
+	}
+
+	public float getHumidity() {
+		return humidity;
+	}
+
+	public void dataChange() {
+		currentConditions.update(getTemperature(), getPressure(), getHumidity());
+	}
+
+	// 当数据有更新时， 就调用setData方法
+	public void setData(float temperature, float pressure, float humidity) {
+		this.temperature = temperature;
+		this.pressure = pressure;
+		this.humidity = humidity;
+		// 调用dataChange() 将最新的信息推送给接入方 currentConditions
+		dataChange();
+	}
+}
+```
+
+```java
+/**
+ * 显示当前天气情况， 可以理解为气象站自己的网站
+ * @author Administrator
+ *
+ */
+public class CurrentConditions {
+	// 温度，起亚，湿度
+	private float temperature;
+	private float pressure;
+	private float humidity;
+
+	// 更新天气情况，是由weatherData来调用，使用推送模式
+	public void update(float temperature, float pressure, float humidity) {
+		this.temperature = temperature;
+		this.pressure = pressure;
+		this.humidity = humidity;
+		display();
+	}
+
+	// 显示
+	public void display() {
+		System.out.println("***Today mTemperature: " + temperature + "***");
+		System.out.println("***Today mPressure: " + pressure + "***");
+		System.out.println("***Today mHumidity: " + humidity + "***");
+	}
+}
+```
+
+测试类
+
+```java
+public class ClientObserver {
+
+    public static void main(String[] args) {
+        // 创建接入方
+        CurrentConditions currentConditions = new CurrentConditions();
+
+        // 创建weatherData 并将currentConditions传递到WeatherData
+        WeatherData weatherData = new WeatherData(currentConditions);
+
+        // 更新天气信息
+        weatherData.setData(30, 150, 40);
+    }
+}
+```
+
+>  存在的问题分析
+
+1) 其他第三方接入气象站获取数据的问题
+
+2) 无法在运行时动态的添加第三方新浪网站
+
+3) 违反ocp原则观察者模式
+
+在WeatherData中当增加一个第三方，都需要创建一 个对应的第三方的公告板对象，并加入到dataChange, **不利于维护m也不是动态加入**
+
+>  观察者模式原理
+
+- 观察者模式类似订牛奶业务
+  1) 奶站气象局： Subject
+  2) 用户第三方网站：Observer
+
+- Subject ：登记注册、移除和通 知
+  - registerObserver注册
+  - removeObserver移除
+  - notifyObservers() 通知所有的注册的用户，根据不同需求，可以是更新数据，让用户来取，也可能是实施推送，看具体需求定
+
+- Observer ：接收输入
+
+观察者模式：对象之间多对一依赖的一种设计方案，被依赖的对象为 Subject依赖的对象为Observer Subject通知Observer变化比如这里的奶站是Subject 是1的一方。用户时Observer是多的一方。
+
+![avatar](picture/observer.png)
+
+源码分析
+
+```java
+// 观察者接口, 由具体的观察者实现
+public interface Observer {
+
+    public void update(float temperature, float pressure, float humidity);
+}
+```
+
+```java
+public interface Subject {
+    // 注册观察者
+    public void registerObserver(Observer o);
+    // 移除观察者
+    public void removeObserver(Observer o);
+    // 通知所有观察者
+    public void notifyObservers();
+}
+```
+
+```java
+/**
+ * 类的核心
+ * 1. 包含最新的天气情况信息
+ * 2. 含有观察者对象的集合
+ * 3. 当前数据更新时 就主动调用 ArrayList, 通知所有的(接入方) 看到最新的信息
+ */
+public class WeatherData implements Subject{
+
+	// 温度
+	private float temperature;
+	// 气压
+	private float pressure;
+	// 湿度
+	private float humidity;
+
+	// 观察者集合
+	private ArrayList<Observer> observers;
+
+	public WeatherData() {
+		observers = new ArrayList<>();
+	}
+
+	public float getTemperature() {
+		return temperature;
+	}
+
+	public float getPressure() {
+		return pressure;
+	}
+
+	public float getHumidity() {
+		return humidity;
+	}
+
+	public void dataChange() {
+		notifyObservers();
+	}
+
+	// 当数据有更新时， 就调用setData方法
+	public void setData(float temperature, float pressure, float humidity) {
+		this.temperature = temperature;
+		this.pressure = pressure;
+		this.humidity = humidity;
+		// 调用dataChange() 将最新的信息推送给接入方 currentConditions
+		dataChange();
+	}
+
+	/**
+	 * 注册一个观察者
+	 * @param o
+	 */
+	@Override
+	public void registerObserver(Observer o) {
+		observers.add(o);
+	}
+
+	/**
+	 * 从注册的观察者中删除某个对象
+	 * @param o 待删除的对象
+	 */
+	@Override
+	public void removeObserver(Observer o) {
+		// 验证待删除的对象是否存在
+		if (observers.contains(o)) observers.remove(o);
+	}
+
+	/**
+	 * 遍历所有的观察者，通知数据更新
+	 */
+	@Override
+	public void notifyObservers() {
+		for (Observer  observer: observers){
+			observer.update(getTemperature(), getPressure(), getHumidity());
+		}
+	}
+}
+```
+
+Observer
+
+```java
+public class CurrentConditions implements Observer {
+
+    // 温度，起亚，湿度
+    private float temperature;
+    private float pressure;
+    private float humidity;
+
+    // 更新天气情况，是由weatherData来调用，使用推送模式
+    public void update(float temperature, float pressure, float humidity) {
+        this.temperature = temperature;
+        this.pressure = pressure;
+        this.humidity = humidity;
+        display();
+    }
+
+    // 显示
+    public void display() {
+        System.out.println("***Today Temperature: " + temperature + " 摄氏度 ***");
+        System.out.println("***Today Pressure: " + pressure + " 帕 ***");
+        System.out.println("***Today Humidity: " + humidity + "% ***");
+    }
+}
+```
+
+```java
+public class BaiduSite implements  Observer{
+    // 温度，起亚，湿度
+    private float temperature;
+    private float pressure;
+    private float humidity;
+
+    // 更新天气情况，是由weatherData来调用，使用推送模式
+    public void update(float temperature, float pressure, float humidity) {
+        this.temperature = temperature;
+        this.pressure = pressure;
+        this.humidity = humidity;
+        display();
+    }
+
+    // 显示
+    public void display() {
+        System.out.println("This is baidu site weather data");
+        System.out.println("*** 百度网站 Today Temperature: " + temperature + " 摄氏度 ***");
+        System.out.println("*** 百度网站 Today Pressure: " + pressure + " 帕 ***");
+        System.out.println("*** 百度网站 Today Humidity: " + humidity + "% ***");
+    }
+}
+```
+
+测试类
+
+```java
+public class TestObserver {
+
+    public static void main(String[] args) {
+        // 创建一个weatherData 
+        WeatherData weatherData = new WeatherData();
+
+        // 创建一个观察者
+        CurrentConditions currentConditions = new CurrentConditions();
+
+        BaiduSite baiduSite = new BaiduSite();
+
+        // 观察者currentConditions注册到weatherData
+        weatherData.registerObserver(currentConditions);
+        weatherData.registerObserver(baiduSite);
+
+        // 通知各个注册的观察者
+        weatherData.setData(19, 100, 30);
+    }
+}
+```
+
+**小结**
+
+观察者模式的好处
+1)  观察者模式设计后，会以集合的方式来管理用户 (Observer)，包括注册，移除和通知。
+2)  这样，我们增加观察者(这里可以理解成一个新的公告板 )，就不需要去修改核心类 WeatherData不会修改代码，遵守了ocp 原则。
+
+
+
+**观察者模式在JDK应用的源码分析**
+1) JDK的Observable 类就使用了观察者模式
+2) 代码分析模式角色分析
+
+```java
+public class Observable {
+    private boolean changed = false;
+    private Vector<Observer> obs;
+
+    /** Construct an Observable with zero Observers. */
+
+    public Observable() {
+        obs = new Vector<>();
+    }
+}
+```
+
+3) 模式角色分析
+
+- Observable的作用和地位等价于 我 们前面讲过 Subject
+- Observable是类，不是接口，类中已经实现了核心的方法 即管理 Observer的方法 add.. delete .. notify...
+- Observer的作用和地位等价于我们前面讲过的 Observer, 有update
+- Observable和Observer 的使用方法和前面讲过的一样，只是Observable是类，通过继承来实现观察者模式
