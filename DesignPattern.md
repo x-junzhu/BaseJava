@@ -1374,7 +1374,7 @@ private static Calendar createCalendar(TimeZone zone,
 中，并返回。有的书上说，变量不要直接持有具体类的引用。
 不要让类继承具体类，而是继承抽象类或者是实现interface(接口不要覆盖基类中已经实现的方法)
 
-## 2.3 原型模式
+### 2.3 原型模式
 
 基本介绍
 1) 原型模式Prototype模式是指：用原型实例指定创建对象的种类，并且通过拷贝这些原型创建新的对象
@@ -1556,7 +1556,7 @@ public class DeepPrototype implements Serializable, Cloneable {
 4) 在实现深克隆的时候可能需要比较复杂的代码
 5) 缺点：需要为每一个类配备一个克隆方法，这对全新的类来说不是很难，但对已有的类进行改造时，需要修改其源代码，违背了ocp原则
 
-## 2.4 代理模式
+### 2.4 代理模式
 
 代理模式的基本介绍
 1) 代理模式：为一个对象提供一个替身，以控制对这个对象的访问。即通过代理对象访问目标对象这样做的好处是可以在目标对象实现的基础上增强额外的功能操作即扩展目标对象的功能。
@@ -1825,7 +1825,7 @@ public class ClientTestCglib {
 3) 远程代理,远程对象的本地代表，通过它可以把远程对象当本地对象来调用。远程代理通过网络和真正的远程对象沟通信息。
 4) 同步代理主要使用在多线程编程中，完成多线程间同步工作
 
-## 2.5 观察者模式
+### 2.5 观察者模式
 
 > 问题引入
 
@@ -2173,3 +2173,230 @@ public class Observable {
 - Observable是类，不是接口，类中已经实现了核心的方法 即管理 Observer的方法 add.. delete .. notify...
 - Observer的作用和地位等价于我们前面讲过的 Observer, 有update
 - Observable和Observer 的使用方法和前面讲过的一样，只是Observable是类，通过继承来实现观察者模式
+
+### 2.6 适配器模式
+
+> 基本介绍
+
+1. 适配器模 式 (Adapter 将 某个类的接口转换成客户端期望的另一个接口表示，主的目的是兼容性，让原本因接口不匹配不能一起工作的两个类可以协同
+   工作。其别名为包装器(wrapper)
+2. 适配器模式属于结构型模式
+3. 主 要分为三类：类适配器模式、对象配器模式、接口适配器模式
+
+> 工作原理
+
+1. 适配器模式：将一个类的接口转换成另一种接口让原本接口不兼容的类可以兼容
+2. 从用户的角度看不到被适配者，是解耦的
+3. 用户调用适配器转化出来的目标接口方法适配器再调用被适配者的相关接口方法
+4. 用户收到反馈结果，感觉只是和目标接口交互
+
+> 问题引入
+
+应用实例说明: 以生活中充电器的例子来讲解适配器，充电器本身相当于Adapter220V交流电相当于src (即被适配者我们的目dst(即目标是5V直流电)
+
+基本介绍：Adapter类，通过继承src类，实现dst类接口，完成src->dst的适配 。
+
+**类适配器模式注意事项和细节**
+1) Java 是单继承机制 ，所以类适配器需要继承src类这一点算是一个缺点因为这要求dst 必须是接口，有一定局限性
+2) src类的方法在Adapter中都会暴露出来，也增加了使用的成本
+3) 由于其继承了src 类，所以它可以根据需求重写src类的方法，使得 Adapter的灵活性增强了
+
+> 代码分析
+
+1. 类适配器
+
+类图
+
+![avatar](picture/classadapter.png)
+
+被适配类
+
+```java
+public class Voltage220V {
+    public int output(){
+        int src = 220;
+        System.out.println("电压=" + src + "伏");
+        return src;
+    }
+}
+```
+
+适配接口
+
+```java
+public interface Voltage5V {
+    public int output5V();
+}
+```
+
+适配器类
+
+```java
+// 适配器类
+public class VoltageAdapter extends Voltage220V implements Voltage5V{
+    @Override
+    public int output5V() {
+        // 获取220V电压
+        int srcFrom220 = super.output();
+        int destV = srcFrom220 / 44;
+        return destV;
+    }
+}
+```
+
+使用方
+
+```java
+public class Phone {
+
+    public void charging(Voltage5V voltage5V){
+        if (voltage5V.output5V() == 5){
+            System.out.println("电压为5伏, 可以充电.");
+        } else System.out.println("电压大于5伏, 不能充电了.");
+    }
+}
+```
+
+调用方
+
+```java
+public class Client {
+
+    public static void main(String[] args) {
+        System.out.println("类适配器模式");
+        Phone phone = new Phone();
+        phone.charging(new VoltageAdapter());
+    }
+}
+```
+
+2. 对象适配器
+
+```java
+// 被适配的类
+public class Voltage220V {
+    public int output(){
+        int src = 220;
+        System.out.println("电压=" + src + "伏");
+        return src;
+    }
+}
+```
+
+```java
+// 适配接口
+public interface Voltage5V {
+    public int output5V();
+}
+```
+
+```java
+// 适配器类
+public class VoltageAdapter implements Voltage5V {
+    // 将被适配类聚合到适配器中
+    private Voltage220V voltage220V;
+    // 通过构造器, 传入Voltage220V的对象
+    public VoltageAdapter(Voltage220V v){
+        this.voltage220V = v;
+    }
+    @Override
+    public int output5V() {
+        int destV = 0;
+        if (null != this.voltage220V){
+            // 获取220V电压
+            int srcFrom220 = voltage220V.output();
+            destV = srcFrom220 / 44;
+        }
+        return destV;
+    }
+}
+```
+
+```java
+// 使用方
+public class Phone {
+    public void charging(Voltage5V voltage5V){
+        if (voltage5V.output5V() == 5){
+            System.out.println("电压为5伏, 可以充电.");
+        } else System.out.println("电压大于5伏, 不能充电了.");
+    }
+}
+```
+
+```java
+public class Client {
+	// 调用方
+    public static void main(String[] args) {
+        System.out.println("==对象适配器模式==");
+        Phone phone = new Phone();
+        phone.charging(new VoltageAdapter(new Voltage220V()));
+    }
+}
+```
+
+3. 接口适配器
+
+接口适配器模式介绍
+
+1. 一些书籍称为：适配器模式(Default Adapter)或缺省适配器模式
+2. 当 不需要全部实现接口提供的方法时，可先设计一个抽象类实现接口，并为该接
+   口中每个方法提供一个默认实现（空方法），那么该抽象类的子类可有选择地覆
+   盖父类的某些方法来实现需 求
+3. 适用于一个接口不想使用其所有的方法的情况
+
+```java
+public interface myInterface {
+    public void m1();
+    public void m2();
+    public void m3();
+    public void m4();
+}
+```
+
+```java
+public abstract class AdsAdapter implements myInterface{
+    @Override
+    public void m1() {
+    }
+    @Override
+    public void m2() {
+    }
+    @Override
+    public void m3() {
+    }
+    @Override
+    public void m4() {
+    }
+}
+```
+
+```java
+public class ClientInterface {
+
+    public static void main(String[] args) {
+        // 只需要我们覆盖需要使用的接口方法就可以
+        AdsAdapter adapter = new AdsAdapter() {
+            @Override
+            public void m1() {
+                System.out.println("使用了m1方法");
+            }
+        };
+        adapter.m1();
+    }
+}
+```
+
+> 适配器模式在 SpringMVC框架应用的源码分析
+
+适配器模式在 SpringMVC 框架应用的源码剖析
+
+1. SpringMVC中的 HandlerAdapter, 就使用了适配器模式
+2. SpringMVC处理请求的流程回顾
+3. 使用HandlerAdapter的原因分析可以看到处理器的类型不同，有多重实现方式，那么调用方式就不是确定的，如果需要直接调用Controller方法，需要调用的时候就得不断是使用 if else 来进行判断是哪一种子类然后执行。那么如果后面要扩展Controller，就得修改原来的代码，这样违背了OCP原则。
+
+>  适配器模式的注意事项和细节
+
+1. 三种命名方式，是根据 src 是以怎样的形式给到 Adapter(在Adapter里的形式)来命名的。
+2. 类适配器：以类给到，在 Adapter 里，就是将src当做类，继承对象适配器：以对象给到，在 Adapter里，将 src作为一个对象，持 有接口适配器：以接口给到，在 Adapter 里，将 src 作为一个接口实 现
+3. Adapter模式最大的作用还是将原本不兼容的接口融合在一起工作
+4. 实际开发中，实现起来不拘泥于我们讲解的三种经典形式
