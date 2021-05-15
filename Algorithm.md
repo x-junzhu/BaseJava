@@ -83,6 +83,8 @@ class Main{
 
 逆序对个数(https://www.acwing.com/problem/content/790/)
 
+剑指offer 51：数组中逆序对的个数(https://leetcode-cn.com/problems/shu-zu-zhong-de-ni-xu-dui-lcof/)
+
 ```java
 /*
 tmp为临时变量
