@@ -28,9 +28,9 @@ public static void quickSort(int[] a, int l, int r){
 
 延伸：
 
-第k个数(https://www.acwing.com/problem/content/788/)
++ 第k个数(https://www.acwing.com/problem/content/788/)
 
-剑指offer 40: 最小的k个数(https://leetcode-cn.com/problems/zui-xiao-de-kge-shu-lcof/)
++ 剑指offer 40: 最小的k个数(https://leetcode-cn.com/problems/zui-xiao-de-kge-shu-lcof/)
 
 > 1.2 归并排序
 
@@ -81,9 +81,9 @@ class Main{
 
 延伸：
 
-逆序对个数(https://www.acwing.com/problem/content/790/)
++ 逆序对个数(https://www.acwing.com/problem/content/790/)
 
-剑指offer 51：数组中逆序对的个数(https://leetcode-cn.com/problems/shu-zu-zhong-de-ni-xu-dui-lcof/)
++ 剑指offer 51：数组中逆序对的个数(https://leetcode-cn.com/problems/shu-zu-zhong-de-ni-xu-dui-lcof/)
 
 ```java
 /*
