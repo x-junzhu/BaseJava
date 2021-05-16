@@ -119,3 +119,58 @@ public static long mergeSort(int[] a, int l, int r){
 
 ### 2. 搜索算法
 
+> 2.1 二分查找
+
+二分查找：满足两段性质
+
++ 模板1
+
+```java
+// 数组q必须为有序数组
+public int binarySearch(int[] q, int target){
+    int l = 0, r = q.length - 1;
+    while(l < r){
+        int mid = l + r >> 1;
+        if(q[mid] >= target) r = mid;
+        else l = mid + 1;
+    }
+    // 此时l=r返回l或者r都可以
+    return l;
+}
+```
+
++ 模板2
+
+```java
+public int binarySearch(int[] q, int target){
+    int l = 0, r = q.length - 1;
+    while(l < r){
+        int mid = l + r + 1 >> 1;
+        if(q[mid] <= target) l = mid;
+        else r = mid - 1;
+    }
+    return r;
+}
+```
+
+延伸：
+
++ 剑指offer：二维数组中的查找(https://leetcode-cn.com/problems/er-wei-shu-zu-zhong-de-cha-zhao-lcof/)
+
+```java
+class Solution {
+    public boolean findNumberIn2DArray(int[][] matrix, int target) {
+        if(matrix.length == 0 || matrix[0].length == 0) return false;
+        int i = 0, j = matrix[0].length - 1;
+        // 二维数组中右上角的位置, 从左往右递增, 从上往下递增(两段性)
+        while(i < matrix.length && j >= 0){
+            int x = matrix[i][j];
+            if(x == target) return true;
+            if(x > target) j--;
+            else i++;
+        }
+        return false;
+    }
+}
+```
+
