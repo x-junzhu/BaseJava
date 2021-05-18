@@ -155,7 +155,7 @@ public int binarySearch(int[] q, int target){
 
 延伸：
 
-+ 剑指offer：二维数组中的查找(https://leetcode-cn.com/problems/er-wei-shu-zu-zhong-de-cha-zhao-lcof/)
++ 剑指offer 04：二维数组中的查找(https://leetcode-cn.com/problems/er-wei-shu-zu-zhong-de-cha-zhao-lcof/)
 
 ```java
 class Solution {
@@ -170,6 +170,89 @@ class Solution {
             else i++;
         }
         return false;
+    }
+}
+```
+
++ 数的三次方根(https://www.acwing.com/problem/content/792/) 
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        double n = Double.parseDouble(br.readLine());
+        double t = Math.abs(n);
+        double l = 0L, r = t;
+        while(r - l > 1e-8){
+            double mid = (l + r) / 2.0;
+            if(mid * mid * mid >= t) r = mid;
+            else l = mid;
+        }
+        if(n >= 0) System.out.println(String.format("%.6f", l));
+        else System.out.println("-" + String.format("%.6f", l));
+    }
+}
+```
+
+> 2.2 双指针算法
+
++ 最长连续不重复子序列(https://www.acwing.com/problem/content/801/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] a = new int[N];
+    static int[] s = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(fLine[i]);
+        
+        int res = 0;
+        for(int i = 0, j = 0; i < n; i++){
+            s[a[i]]++;
+            while(s[a[i]] > 1){
+                s[a[j]]--;
+                j++;
+            }
+            res = Math.max(res, i - j + 1);
+        }
+        System.out.println(res);
+    }
+}
+```
+
++ 剑指offer 22： 链表中倒数第k个节点(https://leetcode-cn.com/problems/lian-biao-zhong-dao-shu-di-kge-jie-dian-lcof/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public ListNode getKthFromEnd(ListNode head, int k) {
+        if(head == null) return head;
+        ListNode a = head;
+        ListNode b = head;
+        int t = k;
+        while((t--) > 0) a = a.next;
+        while(a != null){
+            a = a.next;
+            b = b.next;
+        }
+        return b;
     }
 }
 ```
