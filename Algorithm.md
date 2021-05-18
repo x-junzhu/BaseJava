@@ -257,3 +257,70 @@ class Solution {
 }
 ```
 
++ 数组元素的目标和(https://www.acwing.com/problem/content/802/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] a = new int[N];
+    static int[] b = new int[N];
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        int t = Integer.parseInt(fLine[2]);
+        
+        String[] sLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(sLine[i]);
+        
+        String[] tLine = br.readLine().split(" ");
+        for(int i = 0; i < m; i++) b[i] = Integer.parseInt(tLine[i]);
+        
+        int i = 0, j = m - 1;
+        while(i < n && j >= 0){
+            if(a[i] + b[j] < t) i++;
+            else if(a[i] + b[j] > t) j--;
+            else break;
+        }
+        System.out.println(i + " " + j);
+    }
+}
+```
+
++ 判断子序列(https://www.acwing.com/problem/content/2818/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] a = new int[N];
+    static int[] b = new int[N];
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        String[] sLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(sLine[i]);
+        
+        String[] tLine = br.readLine().split(" ");
+        for(int i = 0; i < m; i++) b[i] = Integer.parseInt(tLine[i]);
+        
+        int i = 0, j = 0;
+        while(i < n && j < m){
+            if(a[i] == b[j]) i++;
+            j++;
+        }
+        if(i == n) System.out.println("Yes");
+        else System.out.println("No");
+    }
+}
+```
+
