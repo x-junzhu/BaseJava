@@ -324,3 +324,52 @@ class Main{
 }
 ```
 
+剑指offer 52：两个链表的第一个公共节点(https://leetcode-cn.com/problems/liang-ge-lian-biao-de-di-yi-ge-gong-gong-jie-dian-lcof/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) {
+ *         val = x;
+ *         next = null;
+ *     }
+ * }
+ */
+public class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+        ListNode a = headA;
+        ListNode b = headB;
+        // 计算headA和headB链表的长度
+        int x = 0, y = 0;
+        while(a != null) {
+            x ++;
+            a = a.next;
+        }
+        while(b != null) {
+            y ++;
+            b = b.next;
+        }
+        // 判断哪个链表长
+        boolean flag = (x - y) > 0? true: false;
+        int diff = Math.abs(x - y);
+        a = headA;
+        b = headB;
+        // 去掉较长链表多余的部分
+        if(flag){
+            while((diff--) > 0) a = a.next;
+        } else {
+            while((diff--) > 0) b = b.next;
+        }
+
+        while(a != b){
+            a = a.next;
+            b = b.next;
+        }
+        return a;   
+    }
+}
+```
+
