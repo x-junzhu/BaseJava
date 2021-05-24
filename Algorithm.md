@@ -373,3 +373,60 @@ public class Solution {
 }
 ```
 
+
+
+### 3. 数据结构
+
++ 单链表(https://www.acwing.com/problem/content/828/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 100010;
+    static int[] e = new int[N];
+    static int[] ne = new int[N];
+    static int idx;
+    static int head;
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        idx = 0;
+        head = -1;
+        while((n--) > 0){
+            String[] fLine = br.readLine().split(" ");
+            if(fLine[0].equals("H")){
+                int x = Integer.parseInt(fLine[1]);
+                add_to_head(x);
+            }else if(fLine[0].equals("D")){
+                int k = Integer.parseInt(fLine[1]);
+                if(k == 0) head = ne[head];
+                else remove(k - 1);
+            }else if(fLine[0].equals("I")){
+                int k = Integer.parseInt(fLine[1]);
+                int x = Integer.parseInt(fLine[2]);
+                add(k - 1, x);
+            }  
+        }
+        
+        for(int i = head; i != -1; i = ne[i]) System.out.print(e[i] + " ");
+    }
+    
+    public static void add(int k, int x){
+        e[idx] = x;
+        ne[idx] = ne[k];
+        ne[k] = idx++;// 这里idx++ 是先赋值后自增
+    }
+    
+    public static void add_to_head(int x){
+        e[idx] = x;
+        ne[idx] = head;
+        head = idx++;
+    }
+    
+    public static void remove(int k){
+        ne[k] = ne[ne[k]];
+    }
+}
+```
+
