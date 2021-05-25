@@ -430,3 +430,92 @@ class Main{
 }
 ```
 
++ 剑指 offer 06：从尾到头打印链表(https://leetcode-cn.com/problems/cong-wei-dao-tou-da-yin-lian-biao-lcof/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public int[] reversePrint(ListNode head) {
+        Stack<Integer> stack = new Stack<>();
+        ListNode t = head;
+        while(t != null){
+            stack.add(t.val);
+            t = t.next;
+        }
+
+        int num = stack.size();
+        int[] res = new int[num];
+        for (int i = 0; i < num; i++){
+            res[i] = stack.pop();
+        }
+        return res;
+
+    }
+}
+```
+
++ 剑指 offer 24：反转链表(https://leetcode-cn.com/problems/fan-zhuan-lian-biao-lcof/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public ListNode reverseList(ListNode head) {
+        if(head == null) return head;
+        ListNode a = head;
+        ListNode b = head.next;
+        while(b != null){
+            ListNode c = b.next;
+            b.next = a;
+            a = b;
+            b = c;
+        }
+        head.next = null;
+        head = a;
+        return head;
+    }
+}
+```
+
++ 剑指 offer 18：删除链表的节点(https://leetcode-cn.com/problems/shan-chu-lian-biao-de-jie-dian-lcof/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public ListNode deleteNode(ListNode head, int val) {
+        if(head == null) return head;
+        ListNode t = head;
+        while(t.next != null){
+            if(t.val == val) head = head.next;
+            if(t.next.val == val) {
+                t.next = t.next.next;
+                break;
+            }
+            t = t.next;
+        }
+        return head;
+
+    }
+}
+```
+
