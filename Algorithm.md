@@ -663,3 +663,79 @@ class Solution {
 }
 ```
 
++ lc 445.两数相加II(https://leetcode-cn.com/problems/add-two-numbers-ii/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+        if(l1 == null) return l2;
+        if(l2 == null) return l1;
+        ListNode dummy = new ListNode(-1);
+        Stack<Integer> s1 = new Stack<>();
+        Stack<Integer> s2 = new Stack<>();
+        while(l1 != null){
+            s1.push(l1.val);
+            l1 = l1.next;
+        }
+        while(l2 != null){
+            s2.push(l2.val);
+            l2 = l2.next;
+        }
+        int x = 0; // 加法中的进位
+        while(s1.size() > 0 || s2.size() > 0 || x != 0){
+            int sum = x;
+            if(s1.size() > 0) sum += s1.pop();
+            if(s2.size() > 0) sum += s2.pop();
+            ListNode cur = new ListNode(sum % 10);
+            if(dummy.next == null) dummy.next = cur;
+            else {
+                ListNode t = dummy.next;
+                dummy.next = cur;
+                cur.next = t;
+            }
+            x = sum / 10;
+        }
+        return dummy.next;
+    }
+}
+```
+
++ lc 141.环形链表(https://leetcode-cn.com/problems/linked-list-cycle/)
+
+```java
+/** 快慢指针
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) {
+ *         val = x;
+ *         next = null;
+ *     }
+ * }
+ */
+public class Solution {
+    public boolean hasCycle(ListNode head) {
+        if(head == null || head.next == null) return false;
+        ListNode slow = head;
+        ListNode fast = head.next;
+        while(slow != fast){
+            if(fast == null || fast.next == null) return false;
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        return true; 
+    }
+}
+```
+
