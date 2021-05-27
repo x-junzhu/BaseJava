@@ -377,7 +377,7 @@ public class Solution {
 
 ### 3. 数据结构
 
-> 3.1 链表
+> 3.1 单链表
 
 + 单链表(https://www.acwing.com/problem/content/828/)
 
@@ -735,6 +735,72 @@ public class Solution {
             fast = fast.next.next;
         }
         return true; 
+    }
+}
+```
+
+> 3.2 双链表
+
++ 双链表(https://www.acwing.com/problem/content/829/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 100010;
+    static int idx;
+    static int[] l = new int[N];
+    static int[] r = new int[N];
+    static int[] e = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        init();
+        while((n--) != 0){
+            String[] fLine = br.readLine().split(" ");
+            if(fLine[0].equals("R")){
+                int x = Integer.parseInt(fLine[1]);
+                add(l[1], x);
+            }else if(fLine[0].equals("L")){
+                int x = Integer.parseInt(fLine[1]);
+                add(0, x);
+            }else if(fLine[0].equals("IL")){
+                int k = Integer.parseInt(fLine[1]);
+                int x = Integer.parseInt(fLine[2]);
+                add(l[k + 1], x);
+            }else if(fLine[0].equals("IR")){
+                int k = Integer.parseInt(fLine[1]);
+                int x = Integer.parseInt(fLine[2]);
+                add(k + 1, x);
+            }else {
+                int k = Integer.parseInt(fLine[1]);
+                remove(k + 1);
+            }
+        }
+        for(int i = r[0]; i != 1; i = r[i]) System.out.print(e[i] + " ");
+    }
+    
+    // 初始化第一个节点从2开始
+    public static void init(){
+        r[0] = 1;
+        l[1] = 0;
+        idx = 2;
+    }
+    
+    // 在第k个位置后面添加节点x
+    public static void add(int k, int x){
+        e[idx] = x;
+        r[idx] = r[k];
+        l[r[k]] = idx;
+        l[idx] = k;
+        r[k] = idx++;
+    }
+    
+    // 移除第k个位置上节点
+    public static void remove(int k){
+        l[r[k]] = l[k];
+        r[l[k]] = r[k];
     }
 }
 ```
