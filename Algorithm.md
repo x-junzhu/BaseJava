@@ -377,6 +377,8 @@ public class Solution {
 
 ### 3. 数据结构
 
+> 3.1 链表
+
 + 单链表(https://www.acwing.com/problem/content/828/)
 
 ```java
@@ -611,6 +613,52 @@ class Solution {
             else cur = cur.next;
         }
         return dummy.next;
+    }
+}
+```
+
++ lc 21.合并两个有序链表(https://leetcode-cn.com/problems/merge-two-sorted-lists/)
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+        if (l1 == null) return l2;
+        if (l2 == null) return l1;
+        ListNode head = new ListNode(-1);
+        ListNode a = head;
+        while(l1 != null && l2 != null){
+            if(l1.val <= l2.val) {
+                a.next = l1;
+                l1 = l1.next;
+            }else{
+                a.next = l2;
+                l2 = l2.next;
+            }
+            a = a.next;
+        }
+
+        while(l1 != null){
+            a.next = l1;
+            a = a.next;
+            l1 = l1.next;
+        }
+
+        while(l2 != null){
+            a.next = l2;
+            a = a.next;
+            l2 = l2.next;
+        }
+        return head.next;
     }
 }
 ```
