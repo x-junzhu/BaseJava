@@ -805,3 +805,71 @@ class Main{
 }
 ```
 
+> 3.3  栈与队列
+
++ 模拟栈(https://www.acwing.com/problem/content/830/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] s = new int[N];
+    static int tt;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        while((n--) != 0){
+            String[] fLine = br.readLine().split(" ");
+            if(fLine[0].equals("push")){
+                int x = Integer.parseInt(fLine[1]);
+                s[++tt] = x;
+            }else if(fLine[0].equals("query")){
+                System.out.println(s[tt]);
+            }else if(fLine[0].equals("pop")){
+                tt--;
+            }else{
+                if(tt <= 0) System.out.println("YES");
+                else System.out.println("NO");
+            }
+        }
+    }
+}
+```
+
+
+
++ 模拟队列(https://www.acwing.com/problem/content/831/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] q = new int[N];
+    static int hh;
+    static int tt = -1;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        while((n--) != 0){
+            String[] fLine = br.readLine().split(" ");
+            if(fLine[0].equals("push")){
+                int x = Integer.parseInt(fLine[1]);
+                q[++tt] = x;
+            }else if(fLine[0].equals("query")){
+                System.out.println(q[hh] + " ");
+            }else if(fLine[0].equals("pop")){
+                hh++;
+            }else {
+                System.out.println(hh <= tt? "NO": "YES");
+            }
+        }
+    }
+}
+```
+
