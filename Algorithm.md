@@ -899,3 +899,46 @@ class Main{
 }
 ```
 
++ 滑动窗口(https://www.acwing.com/problem/content/156/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 1000010;
+    static int[] a = new int[N];
+    static int[] q = new int[N];
+    static int hh = 0;
+    static int tt = -1;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int k = Integer.parseInt(fLine[1]);
+        
+        String[] sLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(sLine[i]);
+        
+        for(int i = 0; i < n; i++){
+            if(hh <= tt && i - k + 1 > q[hh]) hh++;
+            while(hh <= tt && a[q[tt]] >= a[i]) tt--;
+            
+            q[++tt] = i;
+            if(i >= k - 1) System.out.print(a[q[hh]] + " ");
+        }
+        System.out.println();
+        hh = 0;
+        tt = -1;
+        for(int i = 0; i < n; i++){
+            if(hh <= tt && i - k + 1 > q[hh]) hh++;
+            while(hh <= tt && a[q[tt]] <= a[i]) tt--;
+            
+            q[++tt] = i;
+            if(i >= k - 1) System.out.print(a[q[hh]] + " ");
+        }
+    }
+}
+```
+
