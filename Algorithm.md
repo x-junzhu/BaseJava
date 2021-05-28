@@ -839,6 +839,32 @@ class Main{
 }
 ```
 
++ 单调栈(https://www.acwing.com/problem/content/832/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 100010;
+    static int[] s = new int[N];
+    static int[] a = new int[N];
+    static int tt;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(fLine[i]);
+        for(int i = 0; i < n; i++){
+            while(tt > 0 && s[tt] >= a[i]) tt--;
+            if(tt > 0) System.out.print(s[tt] + " ");
+            else System.out.print("-1 ");
+            s[++tt] = a[i];
+        }
+    }
+}
+```
+
 
 
 + 模拟队列(https://www.acwing.com/problem/content/831/)
