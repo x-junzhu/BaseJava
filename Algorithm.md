@@ -942,3 +942,43 @@ class Main{
 }
 ```
 
+> 3.4 并查集
+
++ 合并集合(https://www.acwing.com/problem/content/838/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] p = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        for(int i = 1; i <= n; i++) p[i] = i;
+        
+        while((m--) != 0){
+            String[] sLine = br.readLine().split(" ");
+            int a = Integer.parseInt(sLine[1]);
+            int b = Integer.parseInt(sLine[2]);
+            if(sLine[0].equals("M")) p[find(a)] = find(b);
+            else {
+                if(find(a) == find(b)) System.out.println("Yes");
+                else System.out.println("No");
+            }
+        }
+    }
+    
+    public static int find(int x){
+        if(p[x] != x) p[x] = find(p[x]);
+        return p[x];
+    }
+}
+```
+
