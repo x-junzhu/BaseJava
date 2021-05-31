@@ -1120,3 +1120,50 @@ class Main{
 }
 ```
 
+> 3.7 字符串哈希
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010, P = 131;
+    static int[] p = new int[N];
+    static int[] h = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        String sLine = br.readLine();
+        
+        char[] str = new char[N];
+        
+        for(int i = 1; i <= n; i++) str[i] = sLine.charAt(i - 1);
+        p[0] = 1;
+        for(int i = 1; i <= n; i++){
+            p[i] = p[i - 1] * P;
+            h[i] = h[i - 1] * P + str[i];
+        }
+        
+        while((m--) != 0){
+            String[] tLine = br.readLine().split(" ");
+            int l1 = Integer.parseInt(tLine[0]);
+            int r1 = Integer.parseInt(tLine[1]);
+            int l2 = Integer.parseInt(tLine[2]);
+            int r2 = Integer.parseInt(tLine[3]);
+            
+            if(get(l1, r1) == get(l2, r2)) System.out.println("Yes");
+            else System.out.println("No");
+        }
+    }
+    
+    public static int get(int l, int r){
+        return h[r] - h[l - 1] * p[r - l + 1];
+    }
+}
+```
+
