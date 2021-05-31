@@ -982,3 +982,141 @@ class Main{
 }
 ```
 
+> 3.5 堆
+
+堆排序(https://www.acwing.com/problem/content/840/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] h = new int[N];
+    static int len;
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        len = n;
+        
+        String[] sLine = br.readLine().split(" ");
+        for(int i = 1; i <= n; i++) h[i] = Integer.parseInt(sLine[i - 1]);
+        for (int i = n / 2; i > 0; i--) down(i);
+        
+        while((m--) > 0){
+            System.out.print(h[1] + " ");
+            h[1] = h[len];
+            len--;
+            down(1);
+        }
+        
+    }
+    
+    public static void down(int u){
+        int t = u;
+        if(2 * u <= len && h[2 * u] < h[t]) t = 2 * u;
+        if(2 * u + 1 <= len && h[2 * u + 1] < h[t]) t = 2 * u + 1;
+        if(t != u){
+            int cur = h[t];
+            h[t] = h[u];
+            h[u] = cur;
+            down(t);
+        }
+    }
+}
+```
+
+> 3.6 散列表
+
+模拟散列表(https://www.acwing.com/problem/content/842/)
+
+版本1：数组模拟
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 20003, INF = 0x3f3f3f;
+    static int[] h = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        while((n--) != 0){
+            String[] fLine = br.readLine().split(" ");
+            int x = Integer.parseInt(fLine[1]);
+            if(fLine[0].equals("I")){
+                h[find(x)] = x;
+            }else {
+                if(h[find(x)] == x) System.out.println("Yes");
+                else System.out.println("No");
+            }
+        }
+    }
+    
+    public static int find(int x){
+        int k = (x % N + N) % N;
+        while(h[k] != x && h[k] != INF){
+            k++;
+            if(k == N) k = 0;
+        }
+        return k;
+    }
+}
+```
+
+版本2：链表模拟
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 100003;
+    static int[] h = new int[N];
+    static int[] e = new int[N];
+    static int[] ne = new int[N];
+    static int idx;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        Arrays.fill(h, -1);
+        
+        while((n--) > 0){
+            String[] fLine = br.readLine().split(" ");
+            int x = Integer.parseInt(fLine[1]);
+            if(fLine[0].equals("I")){
+                insert(x);
+            }else {
+                if(query(x)) System.out.println("Yes");
+                else System.out.println("No");
+            }
+        }
+    }
+    
+    public static void insert(int x){
+        int k = (x % N + N) % N;
+        e[idx] = x;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+    
+    public static boolean query(int x){
+        int k = (x % N  + N) % N;
+        for(int i = h[k]; i != -1; i = ne[i]){
+            if(e[i] == x) return true;
+        }
+        return false;
+    }
+}
+```
+
