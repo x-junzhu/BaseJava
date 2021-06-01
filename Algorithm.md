@@ -373,6 +373,116 @@ public class Solution {
 }
 ```
 
+> 2.3 深度优先搜索和广度优先搜索
+
++ 深度优先搜索(https://www.acwing.com/problem/content/844/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 10;
+    static int[] path = new int[N];
+    static boolean[] stk = new boolean[N];
+    static int n;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        
+        n = Integer.parseInt(br.readLine());
+        
+        dfs(0);
+    }
+    
+    public static void dfs(int u){
+        if(u == n){
+            for(int i = 0; i < n; i++) System.out.print(path[i] + " ");
+            System.out.println();
+            return;
+        }
+        
+        for(int i = 1; i <= n; i++){
+            if(stk[i] == false){
+                path[u] = i;
+                stk[i] = true;
+                dfs(u + 1);
+                stk[i] = false;
+            }
+        }
+    }
+}
+```
+
++ 广度优先遍历()
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 110;
+    static Pair[] q = new Pair[N * N];
+    static int[][] g = new int[N][N];
+    static int[][] d = new int[N][N];
+    
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        for(int i = 0; i < n; i++){
+            String[] sLine = br.readLine().split(" ");
+            for(int j = 0; j < m; j++)
+                g[i][j] = Integer.parseInt(sLine[j]);
+        }
+        
+        for(int i = 0; i < n; i++) Arrays.fill(d[i], -1);
+        
+        System.out.println(bfs());
+    }
+    
+    public static int bfs(){
+        int hh = 0, tt = -1;
+        q[++tt] = new Pair(0, 0);
+        d[0][0] = 0;
+        
+        int dx[] = {-1, 0, 1, 0};
+        int dy[] = {0, 1, -1, 0};
+        
+        while(hh <= tt){
+            Pair t = q[hh++];
+            for(int i = 0; i < 4; i++){
+                int x = t.l + dx[i];
+                int y = t.r + dy[i];
+                if(x >= 0 && x < n && y >= 0 && y < m && d[x][y] == -1 && g[x][y] == 0){
+                    d[x][y] = d[t.l][t.r] + 1;
+                    q[++tt] = new Pair(x, y);
+                }
+            }
+        }
+        return d[n - 1][m - 1];
+    }
+}
+
+class Pair{
+    int l;
+    int r;
+    public Pair(int l, int r){
+        this.l = l;
+        this.r = r;
+    }
+}
+```
+
+
+
 
 
 ### 3. 数据结构
