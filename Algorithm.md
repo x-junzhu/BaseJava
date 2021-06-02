@@ -414,7 +414,7 @@ class Main{
 }
 ```
 
-+ 广度优先遍历()
++ 广度优先遍历(https://www.acwing.com/problem/content/846/)
 
 ```java
 import java.io.*;
@@ -454,7 +454,7 @@ class Main{
         d[0][0] = 0;
         
         int dx[] = {-1, 0, 1, 0};
-        int dy[] = {0, 1, -1, 0};
+        int dy[] = {0, 1, 0, -1};
         
         while(hh <= tt){
             Pair t = q[hh++];
