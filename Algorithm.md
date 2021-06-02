@@ -483,8 +483,6 @@ class Pair{
 
 
 
-
-
 ### 3. 数据结构
 
 > 3.1 单链表
@@ -1273,6 +1271,128 @@ class Main{
     
     public static int get(int l, int r){
         return h[r] - h[l - 1] * p[r - l + 1];
+    }
+}
+```
+
+
+
+> 3.8 树与图
+
++ n-皇后(https://www.acwing.com/problem/content/845/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 20;
+    static char[][] g = new char[N][N];
+    static boolean[] col = new boolean[N];
+    static boolean[] dg = new boolean[N];
+    static boolean[] udg = new boolean[N];
+    static int n;
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        n = Integer.parseInt(br.readLine());
+        
+        for(int i = 0; i < n; i++)
+            for(int j = 0; j < n; j++)
+                g[i][j] = '.';
+        
+        dfs(0);
+    }
+    
+    public static void dfs(int u){
+        if(u == n){
+            for(int i = 0; i < n; i++){
+                for(int j = 0; j < n; j++)
+                    System.out.print(g[i][j]);
+                System.out.println();
+            }
+            System.out.println();
+            return;
+        }
+        
+        for(int i = 0; i < n; i++){
+            if(col[i] == false && dg[i + u] == false && udg[i - u + n] == false){
+                g[u][i] = 'Q';
+                col[i] = dg[i + u] = udg[i - u + n] = true;
+                dfs(u + 1);
+                col[i] = dg[i + u] = udg[i - u + n] = false;
+                g[u][i] = '.';
+            }
+        }
+    }
+}
+```
+
+
+
++ 图中点的层次(https://www.acwing.com/problem/content/849/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] h = new int[N];
+    static int[] e = new int[N];
+    static int[] ne = new int[N];
+    static int idx;
+    
+    static int[] q = new int[N];
+    // 表示从1到n的距离
+    static int[] d = new int[N];
+    
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        Arrays.fill(h, -1);
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int k = Integer.parseInt(sLine[0]);
+            int x = Integer.parseInt(sLine[1]);
+            insert(k, x);
+        }
+        
+        int dist = bfs();
+        System.out.println(dist);
+    }
+    
+    public static void insert(int k, int x){
+        e[idx] = x;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+    
+    public static int bfs(){
+        int tt = -1, hh = 0;
+        Arrays.fill(d, -1);
+        d[1] = 0;
+        q[++tt] = 1;
+        while(hh <= tt){
+            int t = q[hh++];
+            for(int i = h[t]; i != -1; i = ne[i]){
+                int j = e[i];
+                if(d[j] == -1){
+                    d[j] = d[t] + 1;
+                    q[++tt] = j;
+                }
+            }
+        }
+        return d[n];
     }
 }
 ```
