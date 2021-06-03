@@ -1626,3 +1626,236 @@ class Pair implements Comparable<Pair>{
 }
 ```
 
+
+
++ 有边数限制的最短路径(https://www.acwing.com/problem/content/855/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 510, M = 100010, INF = 0x3f3f3f3f;
+    static int[] dist = new int[N];
+    static int[] backup = new int[N];
+    
+    static Edge[] edges = new Edge[M];
+    static int n;
+    static int m;
+    static int k;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        k = Integer.parseInt(fLine[2]);
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");	
+            int x = Integer.parseInt(sLine[0]);
+            int y = Integer.parseInt(sLine[1]);
+            int z = Integer.parseInt(sLine[2]);
+            
+            edges[i] = new Edge(x, y, z);
+        }
+        
+        int t = bellman_ford();
+        if(t == -1) System.out.println("impossible");
+        else System.out.println(t);
+        
+    }
+    
+    public static int bellman_ford(){
+        Arrays.fill(dist, INF);
+        dist[1] = 0;
+        
+        for(int i = 0; i < k; i++){
+            backup = Arrays.copyOf(dist, dist.length);
+            for(int j = 0; j < m; j++){
+                int a = edges[j].l, b = edges[j].r, w = edges[j].w;
+                dist[b] = Math.min(dist[b], backup[a] + w);
+            }
+        }
+        if(dist[n] > INF / 2) return -1;
+        return dist[n];
+    }
+}
+
+class Edge{
+    int l;
+    int r;
+    int w;
+    public Edge(int l, int r, int w){
+        this.l = l;
+        this.r = r;
+        this.w = w;
+    }
+}
+```
+
+
+
++ spfa求最短路(https://www.acwing.com/problem/content/853/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.util.ArrayDeque;
+
+class Main{
+    public static final int N = 100010, INF = 0x3f3f3f3f;
+    static int[] h = new int[N];
+    static int[] e = new int[N];
+    static int[] ne = new int[N];
+    static int[] w = new int[N];
+    static int idx;
+    
+    static int[] dist = new int[N];
+    static boolean[] stk = new boolean[N];
+    
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        Arrays.fill(h, -1);
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int k = Integer.parseInt(sLine[0]);
+            int x = Integer.parseInt(sLine[1]);
+            int z = Integer.parseInt(sLine[2]);
+            
+            insert(k, x, z);
+        }
+        
+        int t = spfa();
+        if(t == -1) System.out.println("impossible");
+        else System.out.println(t);
+        
+    }
+    
+    public static int spfa(){
+        Arrays.fill(dist, INF);
+        ArrayDeque<Integer> q = new ArrayDeque<>();
+        q.add(1);
+        dist[1] = 0;
+        stk[1] = true;
+        
+        while(!q.isEmpty()){
+            int t = q.poll();
+            stk[t] = false;
+            for(int i = h[t]; i != -1; i = ne[i]){
+                int j = e[i];
+                if(dist[j] > dist[t] + w[i]){
+                    dist[j] = dist[t] + w[i];
+                    if(stk[j] == false){
+                        q.add(j);
+                        stk[j] = true;
+                    }
+                }
+            }
+        }
+        
+        if(dist[n] >= INF) return -1;
+        return dist[n];
+    }
+    
+    public static void insert(int k, int x, int z){
+        e[idx] = x;
+        w[idx] = z;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+}
+```
+
+
+
++ spfa判断负环(https://www.acwing.com/problem/content/854/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.util.ArrayDeque;
+
+class Main{
+    public static final int N = 100010, INF = 0x3f3f3f3f;
+    static int[] h = new int[N];
+    static int[] e = new int[N];
+    static int[] w = new int[N];
+    static int[] ne = new int[N];
+    static int idx;
+    
+    static int[] dist = new int[N];
+    static boolean[] stk = new boolean[N];
+    static int[] cnt = new int[N];
+    
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        Arrays.fill(h, -1);
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int x = Integer.parseInt(sLine[0]);
+            int y = Integer.parseInt(sLine[1]);
+            int z = Integer.parseInt(sLine[2]);
+            
+            insert(x, y, z);
+        }
+        
+        if(spfa()) System.out.println("Yes");
+        else System.out.println("No");
+    }
+    
+    public static boolean spfa(){
+        Arrays.fill(dist, INF);
+        ArrayDeque<Integer> q = new ArrayDeque<>();
+        
+        for(int i = 1; i <= n; i++){
+            q.add(i);
+            stk[i] = true;
+        }
+        
+        while(!q.isEmpty()){
+            int t = q.poll();
+            stk[t] = false;
+            for(int i = h[t]; i != -1; i = ne[i]){
+                int j = e[i];
+                if(dist[j] > dist[t] + w[i]){
+                    dist[j] = dist[t] + w[i];
+                    cnt[j] = cnt[t] + 1;
+                    if(cnt[j] >= n) return true;
+                    
+                    if(stk[j] == false){
+                        q.add(j);
+                        stk[j] = true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    
+    public static void insert(int k, int x, int z){
+        e[idx] = x;
+        w[idx] = z;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+}
+```
+
