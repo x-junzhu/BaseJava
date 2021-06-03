@@ -1397,3 +1397,232 @@ class Main{
 }
 ```
 
+
+
++ 有向图的拓扑序列(https://www.acwing.com/problem/content/850/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] h = new int[N];
+    static int[] e = new int[N];
+    static int[] ne = new int[N];
+    static int idx;
+    
+    static int n;
+    static int m;
+    
+    static int[] q = new int[N];
+    static int[] d = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        Arrays.fill(h, -1);
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int k = Integer.parseInt(sLine[0]);
+            int x = Integer.parseInt(sLine[1]);
+            insert(k, x);
+            d[x]++;
+        }
+        
+        if(top())
+            for(int i = 0; i < n; i++) System.out.print(q[i] + " ");
+        else System.out.println("-1");
+    }
+    
+    public static boolean top(){
+        int tt = -1, hh = 0;
+        for(int i = 1; i <= n; i++){
+            if(d[i] == 0)
+                q[++tt] = i;
+        }
+        
+        while(hh <= tt){
+            int t = q[hh++];
+            for(int i = h[t]; i != -1; i = ne[i]){
+                int j = e[i];
+                d[j]--;
+                if(d[j] == 0) q[++tt] = j;
+            }
+        }
+        return tt == n - 1;
+    }
+    
+    public static void insert(int k, int x){
+        e[idx] = x;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+}
+```
+
+
+
+单源最短路径
+
++ Dijkstra求最短路 I(https://www.acwing.com/problem/content/851/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 510, INF = 0x3f3f3f;
+    static int[][] g = new int[N][N];
+    
+    static boolean[] stk = new boolean[N];
+    static int[] dist = new int[N];
+    
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        for(int i = 0; i < N; i++) Arrays.fill(g[i], INF);
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int x = Integer.parseInt(sLine[0]);
+            int y = Integer.parseInt(sLine[1]);
+            int z = Integer.parseInt(sLine[2]);
+            
+            g[x][y] = Math.min(g[x][y], z);
+        }
+        
+        System.out.println(dijkstra());
+    }
+    
+    public static int dijkstra(){
+        Arrays.fill(dist, INF);
+        dist[1] = 0;
+        for(int i = 0; i < n; i++){
+            int t = -1;
+            
+            for(int j = 1; j <= n; j++){
+                if(stk[j] == false && (t == -1 || dist[t] > dist[j]))
+                    t = j;
+            }
+            
+            stk[t] = true;
+            
+            for(int j = 1; j <= n; j ++){
+                dist[j] = Math.min(dist[j], dist[t] + g[t][j]);
+            }
+        }
+        
+        if(dist[n] >= INF) return -1;
+        return dist[n];
+    }
+}
+```
+
+
+
++ Dijkstra求最短路 II(https://www.acwing.com/problem/content/852/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.lang.Comparable;
+import java.util.PriorityQueue;
+
+class Main{
+    
+    public static final int N = 200010, INF = 0x3f3f3f3;
+    static int[] h = new int[N];
+    static int[] e = new int[N];
+    static int[] ne = new int[N];
+    static int[] w = new int[N];
+    
+    static int[] dist = new int[N];
+    static boolean[] stk = new boolean[N];
+    
+    static int idx;
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        Arrays.fill(h, -1);
+        
+        while((m--) > 0){
+            String[] sLine = br.readLine().split(" ");
+            int x = Integer.parseInt(sLine[0]);
+            int y = Integer.parseInt(sLine[1]);
+            int z = Integer.parseInt(sLine[2]);
+            
+            insert(x, y, z);
+        }
+        
+        System.out.println(dijkstra());
+    }
+    
+    public static void insert(int k, int x, int z){
+        e[idx] = x;
+        w[idx] = z;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+    
+    public static int dijkstra(){
+        Arrays.fill(dist, INF);
+        PriorityQueue<Pair> q = new PriorityQueue<>();
+        dist[1] = 0;
+        q.add(new Pair(0, 1));
+        while(!q.isEmpty()){
+            Pair t = q.poll();
+            int cur = t.r;
+            int d = t.l;
+            
+            if(stk[cur]) continue;
+            
+            stk[cur] = true;
+            
+            for(int i = h[cur]; i != -1; i = ne[i]){
+                int j = e[i];
+                if(dist[j] > d + w[i]){
+                    dist[j] = d + w[i];
+                    q.add(new Pair(dist[j], j));
+                }
+            }
+        }
+        
+        if(dist[n] >= INF) return -1;
+        return dist[n];
+    }
+}
+
+class Pair implements Comparable<Pair>{
+    int l;
+    int r;
+    
+    public Pair(int l, int r){
+        this.l = l;
+        this.r = r;
+    }
+    
+    public int compareTo(Pair p){
+        return this.l - p.l;
+    }
+}
+```
+
