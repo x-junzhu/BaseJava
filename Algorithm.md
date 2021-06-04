@@ -1859,3 +1859,124 @@ class Main{
 }
 ```
 
+
+
++ Floyd求最短路(https://www.acwing.com/problem/content/856/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 210, INF = (int)1e7;
+    
+    static int[][] dist = new int[N][N];
+    
+    static int n;
+    static int m;
+    static int k;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        k = Integer.parseInt(fLine[2]);
+        
+        for(int i = 0; i < N; i++)
+            for(int j = 0; j < N; j++)
+                if(i == j) dist[i][j] = 0;
+        		else dist[i][j] = INF;
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int a = Integer.parseInt(sLine[0]);
+            int b = Integer.parseInt(sLine[1]);
+            int w = Integer.parseInt(sLine[2]);
+            
+            dist[a][b] = Math.min(dist[a][b], w);
+        }
+        
+        floyd();
+        
+        while((k--) > 0){
+            String[] tLine = br.readLine().split(" ");
+            int l = Integer.parseInt(tLine[0]);
+            int r = Integer.parseInt(tLine[1]);
+            
+            if(dist[l][r] > INF / 2) System.out.println("impossible");
+            else System.out.println(dist[l][r]);
+        }
+    }
+    
+    public static void floyd(){
+        for(int k = 0; k <= n; k++)
+            for(int i = 0; i <= n; i++)
+                for(int j = 0; j <= n; j++)
+                    dist[i][j] = Math.min(dist[i][j], dist[i][k] + dist[k][j]);
+    }
+}
+```
+
+
+
++ Prim算法求最小生成树(https://www.acwing.com/problem/content/860/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 510, INF = (int)1e7;
+    static int[][] g = new int[N][N];
+    static int[] dist = new int[N];
+    
+    static boolean[] stk = new boolean[N];
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        for(int i = 0; i < N; i++) Arrays.fill(g[i], INF);
+        
+        while((m--) > 0){
+            String[] sLine = br.readLine().split(" ");
+            int a = Integer.parseInt(sLine[0]);
+            int b = Integer.parseInt(sLine[1]);
+            int w = Integer.parseInt(sLine[2]);
+            
+            g[a][b] = g[b][a] = Math.min(g[a][b], w);
+        }
+        
+        int t = prim();
+        if(t == -1) System.out.println("impossible");
+        else System.out.println(t);
+    }
+    
+    public static int prim(){
+        Arrays.fill(dist, INF);
+        
+        int res = 0;
+        for(int i = 0; i < n; i++){
+            int t = -1;
+            for(int j = 1; j <= n; j++)
+                if(stk[j] == false && (t == -1 || dist[t] > dist[j]))
+                    t = j;
+
+            stk[t] = true;
+
+            if(i > 0 && dist[t] >= INF) return -1;
+            if(i > 0) res += dist[t];
+            for(int j = 1; j <= n; j++) dist[j] = Math.min(dist[j], g[t][j]);
+        }
+        
+        return res;
+    }
+}
+```
+
