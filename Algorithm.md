@@ -1980,3 +1980,82 @@ class Main{
 }
 ```
 
+
+
++ Kruskal算法求最小生成树(https://www.acwing.com/problem/content/861/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.util.Comparator;
+
+class Main{
+    public static final int N = 100010;
+    static int[] p = new int[N];
+    static Edge[] edges;
+    
+    static int n;
+    static int m;
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        edges = new Edge[m];
+        
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int a = Integer.parseInt(sLine[0]);
+            int b = Integer.parseInt(sLine[1]);
+            int c = Integer.parseInt(sLine[2]);
+            
+            edges[i] = new Edge(a, b, c);
+        }
+        
+        Comparator<Edge> com = new Comparator<Edge>(){
+            public int compare(Edge e1, Edge e2){
+                return e1.w - e2.w;
+            }
+        };
+        
+        for(int i = 0; i <= n; i++) p[i] = i;
+        
+        Arrays.sort(edges, com);
+        
+        int cnt = 0, res = 0;
+        for(int i = 0; i < m; i++){
+             
+            int a = edges[i].l, b = edges[i].r, c = edges[i].w;
+            a = find(a);
+            b = find(b);
+            
+            if(a != b){
+                p[a] = b;
+                res += c;
+                cnt++;
+            }
+        }
+        
+        if(cnt < n - 1) System.out.println("impossible");
+        else System.out.println(res);
+    }
+    
+    public static int find(int x){
+        if(p[x] != x) p[x] = find(p[x]);
+        return p[x];
+    } 
+}
+
+class Edge{
+    int l;
+    int r;
+    int w;
+    public Edge(int l, int r, int w){
+        this.l = l;
+        this.r = r;
+        this.w = w;
+    }
+}
+```
+
