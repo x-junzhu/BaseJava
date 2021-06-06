@@ -2059,3 +2059,146 @@ class Edge{
 }
 ```
 
+
+
++ 染色法判定二分图(https://www.acwing.com/problem/content/862/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 100010, M = 200010;
+    static int[] h = new int[N];
+    static int[] e = new int[M];
+    static int[] ne = new int[M];
+    static int idx;
+    
+    static int n;
+    static int m;
+    
+    static int[] color = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        Arrays.fill(h, -1);
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int a = Integer.parseInt(sLine[0]);
+            int b = Integer.parseInt(sLine[1]);
+            
+            insert(a, b);
+            insert(b, a);
+        }
+        
+        boolean flag = true;
+        for(int i = 1; i <= n; i++){
+            if(color[i] == 0){
+                if(dfs(i, 1) == false){
+                    flag = false;
+                    break;
+                }
+            }
+        }
+        
+        if(flag == false) System.out.println("No");
+        else System.out.println("Yes");
+        
+    }
+    
+    public static boolean dfs(int u, int c){
+        color[u] = c;
+        for(int i = h[u]; i != -1; i =ne[i]){
+            int j = e[i];
+            if(color[j] == 0){
+                if(dfs(j, 3 - c) == false) return false;
+            }
+            else if(color[j] == c) return false;
+        }
+        return true;
+    }
+    
+    public static void insert(int k, int x){
+        e[idx] = x;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+}
+```
+
+
+
++ 二分图的最大匹配(https://www.acwing.com/problem/content/863/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 100010, M = 200010;
+    static int[] h = new int[N];
+    static int[] e = new int[M];
+    static int[] ne = new int[M];
+    static int idx;
+    
+    static int n1;
+    static int n2;
+    static int m;
+    
+    static int[] match = new int[N];
+    static boolean[] stk = new boolean[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n1 = Integer.parseInt(fLine[0]);
+        n2 = Integer.parseInt(fLine[1]);
+        m = Integer.parseInt(fLine[2]);
+        Arrays.fill(h, -1);
+        for(int i = 0; i < m; i++){
+            String[] sLine = br.readLine().split(" ");
+            int k = Integer.parseInt(sLine[0]);
+            int x = Integer.parseInt(sLine[1]);
+            insert(k, x);
+        }
+        
+        int res = 0;
+        for(int i = 1; i <= n1; i++){
+            Arrays.fill(stk, false);
+            if(find(i)) res++;
+        }
+        
+        System.out.println(res);
+        
+    }
+    
+    public static boolean find(int x){
+        for(int i = h[x]; i != -1; i = ne[i]){
+            int j = e[i];
+            if(stk[j] == false){
+                stk[j] = true;
+                if(match[j] == 0 || find(match[j])){
+                    match[j] = x;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    public static void insert(int k, int x){
+        e[idx] = x;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+}
+```
+
