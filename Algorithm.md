@@ -2202,3 +2202,103 @@ class Main{
 }
 ```
 
+
+
+### 4. 数学知识
+
+
+
++ 试除法判定质数(https://www.acwing.com/problem/content/868/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        while((n--) != 0){
+            int x = Integer.parseInt(br.readLine());
+            boolean flag = false;
+            for(int i = 2; i <= x / i; i++){
+                if(x % i == 0){
+                    flag = true;
+                    break;
+                }
+            }
+            if(flag == true || x < 2) System.out.println("No");
+            else System.out.println("Yes");
+        }
+        
+        
+    }
+}
+```
+
+
+
++ 分解质因数(https://www.acwing.com/problem/content/869/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        while((n--) > 0){
+            int x = Integer.parseInt(br.readLine());
+            
+            get_divide(x);
+        }
+    }
+    
+    public static void get_divide(int x){
+        for(int i = 2; i <= x / i; i++){
+            int count = 0;
+            if(x % i == 0){
+                
+                while(x % i == 0){
+                    count++;
+                    x /= i;
+                }
+                System.out.println(i + " " + count);
+            }
+            
+        }
+        if(x > 1) System.out.println(x + " " + 1);
+        System.out.println();
+    }
+}
+```
+
+
+
++ 筛质数(https://www.acwing.com/problem/content/870/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010;
+    static int[] primes = new int[N];
+    static boolean[] stk = new boolean[N];
+    static int cnt;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int x = Integer.parseInt(br.readLine());
+        for(int i = 2; i <= x; i++){
+            if(stk[i] == false) primes[cnt++] = i;
+            for(int j = i + i; j <= x; j += i) stk[j] = true;
+        }
+        System.out.println(cnt);
+    }
+}
+```
+
