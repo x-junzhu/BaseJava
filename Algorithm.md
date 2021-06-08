@@ -2300,3 +2300,118 @@ class Main{
 }
 ```
 
+
+
++ 试除法求约数(https://www.acwing.com/problem/content/871/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        while((n--) != 0){
+            int x = Integer.parseInt(br.readLine());
+            List<Integer> res = get_divide(x);
+            
+            for(Integer item: res) System.out.print(item + " ");
+            System.out.println();
+        }
+    }
+    
+    public static List<Integer> get_divide(int x){
+        List<Integer> res = new ArrayList<>();
+        for(int i = 1; i <= x / i; i++){
+            if(x % i == 0){
+                res.add(i);
+                if(i != x / i) res.add(x / i);
+            }
+            
+        }
+        Collections.sort(res);
+        return res;
+    }
+}
+```
+
+
+
++ 约数个数(https://www.acwing.com/problem/content/872/)
+
+```java
+import java.io.*;
+import java.util.*;
+
+class Main{
+    
+    public static final int N = (int)1e9 + 7;    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        Map<Integer, Integer> map = new HashMap<>();
+        while((n--) > 0){
+            int x = Integer.parseInt(br.readLine());
+            
+            for(int i = 2; i <= x / i; i++){
+                while(x % i == 0){
+                    x /= i;
+                    if(map.containsKey(i)){
+                        int num = map.get(i);
+                        map.put(i, num + 1);
+                    }else map.put(i, 1);
+                    
+                }
+            }
+            
+            if(x > 1){
+                if(map.containsKey(x)){
+                    int num = map.get(x);
+                    map.put(x, num + 1);
+                }else map.put(x, 1);
+            }
+        }
+        
+        long finalRes = 1L;
+        for(Map.Entry item: map.entrySet()) finalRes = finalRes * ((int)item.getValue() + 1) % N;
+        System.out.println(finalRes);
+    }
+}
+```
+
+
+
++ 最大公约数(https://www.acwing.com/problem/content/874/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        while((n--) > 0){
+            String[] fLine = br.readLine().split(" ");
+            int l = Integer.parseInt(fLine[0]);
+            int r = Integer.parseInt(fLine[1]);
+            int res = gcd(l, r);
+            System.out.println(res);
+        }
+        
+    }
+    
+    public static int gcd(int a, int b){
+        return b > 0? gcd(b, a % b): a;
+    }
+}
+```
+
