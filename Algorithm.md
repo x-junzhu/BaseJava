@@ -2206,8 +2206,6 @@ class Main{
 
 ### 4. 数学知识
 
-
-
 + 试除法判定质数(https://www.acwing.com/problem/content/868/)
 
 ```java
