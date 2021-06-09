@@ -2415,3 +2415,73 @@ class Main{
 }
 ```
 
+
+
++ 快速幂(https://www.acwing.com/problem/content/877/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        while((n--) != 0){
+            String[] fLine = br.readLine().split(" ");
+            int a = Integer.parseInt(fLine[0]);
+            int b = Integer.parseInt(fLine[1]);
+            int p = Integer.parseInt(fLine[2]);
+            
+            long res = qmi(a, b, p);
+            System.out.println(res);
+        }
+    }
+    
+    public static long qmi(long a, int b, int p){
+        long res = 1L;
+        while(b != 0){
+            if((b & 1) == 1) res = res * a % p;
+            b >>= 1;
+            a = a * a % p;
+        }
+        return res;
+    }
+}
+```
+
+
+
++ 快速幂求逆元(https://www.acwing.com/problem/content/878/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        while((n--) > 0){
+            String[] fLine = br.readLine().split(" ");
+            int a = Integer.parseInt(fLine[0]);
+            int p = Integer.parseInt(fLine[1]);
+            if(a % p != 0) System.out.println(qmi(a, p - 2, p));
+            else System.out.println("impossible");
+        }
+    }
+    
+    public static long qmi(long a, int b, int p){
+        long res = 1L;
+        while(b != 0){
+            if((b & 1) == 1) res = res * a % p;
+            b >>= 1;
+            a = a * a % p;
+        }
+        return res;
+    }
+}
+```
+
