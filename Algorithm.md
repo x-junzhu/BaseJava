@@ -2485,3 +2485,79 @@ class Main{
 }
 ```
 
+
+
++ 求组合数 I(https://www.acwing.com/problem/content/887/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 2010, mod = (int)1e9 + 7;
+    static int[][] c = new int[N][N];
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        for(int i = 0; i < N; i++)
+            for(int j = 0; j <= i; j++)
+                if(j == 0) c[i][j] = 1;
+                else c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % mod;
+        
+        while((n--) > 0){
+            String[] fLine = br.readLine().split(" ");
+            int l = Integer.parseInt(fLine[0]);
+            int r = Integer.parseInt(fLine[1]);
+            System.out.println(c[l][r]);
+        }
+    }
+}
+```
+
+
+
++ 求组合数 II(https://www.acwing.com/problem/content/888/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 100010, mod = (int)1e9 + 7;
+    
+    static long[] factor = new long[N];
+    static long[] infactor = new long[N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        factor[0] = infactor[0] = 1L;
+        for(int i = 1; i < N; i++){
+            factor[i] = factor[i - 1] * i % mod;
+            infactor[i] = infactor[i - 1] * qmi(i, mod - 2, mod) % mod;
+        }
+        
+        while((n--) != 0){
+            String[] fLine = br.readLine().split(" ");
+            int l = Integer.parseInt(fLine[0]);
+            int r = Integer.parseInt(fLine[1]);
+            
+            System.out.println(factor[l] * infactor[l - r] % mod * infactor[r] % mod);
+        }
+    }
+    
+    public static long qmi(long a, int b, int p){
+        long res = 1L;
+        while(b != 0){
+            if((b & 1) == 1) res = res * a % p;
+            b >>= 1;
+            a = a * a % p;
+        }
+        return res;
+    }
+}
+```
+
