@@ -2561,3 +2561,62 @@ class Main{
 }
 ```
 
+
+
++ 满足条件的01序列(https://www.acwing.com/problem/content/891/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int mod = (int)1e9 + 7;
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        int a = 2 * n, b = n;
+        long res = 1L;
+        for(int i = a; i > a - b; i--) res = res * i % mod;
+        for(int i = 1; i <= b; i++) res = res * qmi(i, mod - 2, mod) % mod;
+        
+        res = res * qmi(n + 1, mod - 2, mod) % mod;
+        System.out.println(res);
+    }
+    
+    public static long qmi(long a, int b, int p){
+        long res = 1L;
+        while(b != 0){
+            if((b & 1) == 1) res = res * a % p;
+            b >>= 1;
+            a = a * a % p;
+        }
+        return res;
+    }
+}
+```
+
+
+
++ Nim游戏(https://www.acwing.com/problem/content/893/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        int res = 0;
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++)
+            res ^= Integer.parseInt(fLine[i]);
+        if(res != 0) System.out.println("Yes");
+        else System.out.println("No");
+    }
+}
+```
+
