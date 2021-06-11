@@ -2620,3 +2620,27 @@ class Main{
 }
 ```
 
+
+
++ 台阶-Nim游戏(https://www.acwing.com/problem/content/894/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        String[] fLine = br.readLine().split(" ");
+        int res = 0;
+        for(int i = 1; i <= n; i++)
+            if(i % 2 != 0) res ^= Integer.parseInt(fLine[i - 1]);
+        
+        if(res != 0) System.out.println("Yes");
+        else System.out.println("No");
+    }
+}
+```
+
