@@ -2644,3 +2644,118 @@ class Main{
 }
 ```
 
+
+
+### 5. 动态规划
+
++ 01背包问题(https://www.acwing.com/problem/content/2/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 1010;
+    static int[][] f = new int[N][N];
+    static int[] v = new int[N];
+    static int[] w = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        for(int i = 1; i <= n; i++){
+            String[] sLine = br.readLine().split(" ");
+            v[i] = Integer.parseInt(sLine[0]);
+            w[i] = Integer.parseInt(sLine[1]);
+        }
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 0; j <= m; j++){
+                f[i][j] = f[i - 1][j];
+                if(j >= v[i]) f[i][j] = Math.max(f[i][j], f[i - 1][j - v[i]] + w[i]);
+            }
+        }
+        
+        System.out.println(f[n][m]);
+    }
+}
+```
+
+
+
++ 完全背包问题(https://www.acwing.com/problem/content/3/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 1010;
+    static int[][] f = new int[N][N];
+    static int[] v = new int[N];
+    static int[] w = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        for(int i = 1; i <= n; i++){
+            String[] sLine = br.readLine().split(" ");
+            v[i] = Integer.parseInt(sLine[0]);
+            w[i] = Integer.parseInt(sLine[1]);
+        }
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 0; j <= m; j++){
+                for(int k = 0; k * v[i] <= j; k++){
+                	f[i][j] = Math.max(f[i][j], f[i - 1][j - k * v[i]] + k * w[i]);
+                }
+            }
+        }
+        System.out.println(f[n][m]);
+    }
+}
+```
+
+
+
++ 多重背包问题 I(https://www.acwing.com/problem/content/4/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 1010;
+    static int[][] f = new int[N][N];
+    static int[] v = new int[N];
+    static int[] w = new int[N];
+    static int[] s = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        for(int i = 1; i <= n; i++){
+            String[] sLine = br.readLine().split(" ");
+            v[i] = Integer.parseInt(sLine[0]);
+            w[i] = Integer.parseInt(sLine[1]);
+            s[i] = Integer.parseInt(sLine[2]);
+        }
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 0; j <= m; j++){
+                for(int k = 0; k <= s[i] && k * v[i] <= j; k++){
+                	f[i][j] = Math.max(f[i][j], f[i - 1][j - k * v[i]] + k * w[i]);
+                }
+            }
+        }
+        System.out.println(f[n][m]);
+    }
+}
+```
+
