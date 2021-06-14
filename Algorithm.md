@@ -2759,3 +2759,101 @@ class Main{
 }
 ```
 
+
+
++ 多重背包问题 II(https://www.acwing.com/problem/content/5/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 10010, M = 2010;
+    static int[] v = new int[N];
+    static int[] w = new int[N];
+    static int[] f = new int[M];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        int cnt = 0;
+        for(int i = 1; i <= n; i++){
+            String[] sLine = br.readLine().split(" ");
+            int a = Integer.parseInt(sLine[0]);
+            int b = Integer.parseInt(sLine[1]);
+            int s = Integer.parseInt(sLine[2]);
+            
+            int k = 1;
+            while(k <= s){
+                cnt++;
+                v[cnt] = a * k;
+                w[cnt] = b * k;
+                s -= k;
+                k *= 2;
+            }
+            
+            if(s > 0){
+                cnt++;
+                v[cnt] = a * s;
+                w[cnt] = b * s;
+            }
+        }
+        
+        n = cnt;
+        for(int i = 1; i <= n; i++)
+            for(int j = m; j >= v[i]; j--)
+                f[j] = Math.max(f[j], f[j - v[i]] + w[i]);
+        
+        System.out.println(f[m]);
+    }
+}
+```
+
+
+
++ 分组背包问题(https://www.acwing.com/problem/content/9/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 110;
+    static int[][] v = new int[N][N];
+    static int[][] w = new int[N][N];
+    static int[][] f = new int[N][N];
+    
+    static int[] s = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        for(int i = 1; i <= n; i++){
+            s[i] = Integer.parseInt(br.readLine());
+        	for(int j = 0; j < s[i]; j++){
+                String[] sLine = br.readLine().split(" ");
+                v[i][j] = Integer.parseInt(sLine[0]);
+                w[i][j] = Integer.parseInt(sLine[1]);
+            }
+        }
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 0; j <= m; j++)
+                for(int k = 0; k <= s[i]; k++){
+                    if(j >= v[i][k]) f[i][j] = Math.max(f[i][j], f[i - 1][j - v[i][k]] + w[i][k]);
+                }
+        }
+        
+        System.out.println(f[n][m]);
+    }
+}
+```
+
