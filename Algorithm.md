@@ -2857,3 +2857,73 @@ class Main{
 }
 ```
 
+
+
++ 数字三角形(https://www.acwing.com/problem/content/900/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 1010;
+    static int[][] w = new int[N][N];
+    // f[i][j] 表示从底部走到f[1][1]最大值
+    static int[][] f = new int[N][N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        for(int i = 1; i <= n; i++){
+            String[] fLine = br.readLine().split(" ");
+            for(int j = 1; j <= i; j++)
+                w[i][j] = Integer.parseInt(fLine[j - 1]);
+        }
+        
+        // 从底部往上走
+        for(int i = 1; i <= n; i++) f[n][i] = w[n][i];
+        
+        for(int i = n - 1; i > 0; i--)
+            for(int j = 0; j <= i; j++)
+                f[i][j] = Math.max(f[i + 1][j] + w[i][j], f[i + 1][j + 1] + w[i][j]);
+        
+        System.out.println(f[1][1]);
+    }
+}
+```
+
+
+
++ 最长上升子序列(https://www.acwing.com/problem/content/897/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 1010;
+    static int[] w = new int[N];
+    static int[] f = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) w[i] = Integer.parseInt(fLine[i]);
+        
+        int res = -1;
+        for(int i = 0; i < n; i++){
+            f[i] = 1;
+            for(int j = 0; j < i; j++)
+                if(w[i] > w[j]) f[i] = Math.max(f[i], f[j] + 1);
+            res = Math.max(res, f[i]);
+        }
+        System.out.println(res);
+    }
+}
+```
+
