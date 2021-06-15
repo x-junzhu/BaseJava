@@ -2927,3 +2927,40 @@ class Main{
 }
 ```
 
+
+
++ 最长上升子序列 II(https://www.acwing.com/problem/content/898/)
+
+```java
+import java.io.*;
+
+class Main{
+    public static final int N = 100010;
+    static int[] a = new int[N];
+    static int[] q = new int[N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(fLine[i]);
+        
+        int len = 0;
+        for(int i = 0; i < n; i++){
+            int l = 0;
+            int r = len;
+            while(l < r){
+                int mid = l + r + 1 >> 1;
+                if(q[mid] < a[i]) l  = mid;
+                else r = mid - 1;
+            }
+            len = Math.max(len, r + 1);
+            q[r + 1] = a[i];
+        }
+        System.out.println(len);
+    }
+}
+```
+
