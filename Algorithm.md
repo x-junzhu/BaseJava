@@ -2964,3 +2964,81 @@ class Main{
 }
 ```
 
+
+
++ 最长公共子序列(https://www.acwing.com/problem/content/899/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 1010;
+    static char[] a = new char[N];
+    static char[] b = new char[N];
+    static int[][] f = new int[N][N];
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        int n = Integer.parseInt(fLine[0]);
+        int m = Integer.parseInt(fLine[1]);
+        
+        char[] t1 = br.readLine().toCharArray();
+        char[] t2 = br.readLine().toCharArray();
+        
+        for(int i = 1; i <= n; i++) a[i] = t1[i - 1];
+        for(int i = 1; i <= m; i++) b[i] = t2[i - 1];
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 1; j <= m; j++){
+                f[i][j] = Math.max(f[i - 1][j], f[i][j - 1]);
+                if(a[i] == b[j]) f[i][j] = Math.max(f[i][j], f[i - 1][j - 1] + 1);
+            }
+        }
+        System.out.println(f[n][m]);
+    }
+}
+```
+
+
+
++ 最短编辑距离(https://www.acwing.com/problem/content/904/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 1010;
+    static char[] a = new char[N];
+    static char[] b = new char[N];
+    // f[i][j]表示从把0-i变成0-j一共需要的操作数
+    static int[][] f = new int[N][N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+        char[] t1 = br.readLine().toCharArray();
+        int m = Integer.parseInt(br.readLine().trim());
+        char[] t2 = br.readLine().toCharArray();
+        
+        for(int i = 1; i <= n; i++) a[i] = t1[i - 1];
+        for(int i = 1; i <= m; i++) b[i] = t2[i - 1];
+        
+        for(int i = 1; i <= n; i++) f[i][0] = i;
+        for(int j = 1; j <= m; j++) f[0][j] = j;
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 1; j <= m; j++){
+                f[i][j] = Math.min(f[i - 1][j] + 1, f[i][j - 1] + 1);
+                if(a[i] == b[j]) f[i][j] = Math.min(f[i][j], f[i - 1][j - 1]);
+                else f[i][j] = Math.min(f[i][j], f[i - 1][j - 1] + 1);
+            }
+        }
+        System.out.println(f[n][m]);
+    }
+}
+```
+
