@@ -3042,3 +3042,71 @@ class Main{
 }
 ```
 
+
+
++ 石子合并(https://www.acwing.com/problem/content/284/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static final int N = 310, INF = (int)1e9;
+    static int[] s = new int[N];
+    static int[][] f = new int[N][N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 1; i <= n; i++) s[i] = Integer.parseInt(fLine[i - 1]);
+        
+        // 预处理前缀和
+        for(int i = 1; i <= n; i++) s[i] += s[i - 1];
+        
+        for(int len = 2; len <= n; len++){
+            for(int i = 1; i + len - 1 <= n; i++){
+                int l = i;
+                int r = i + len - 1;
+                f[l][r] = INF;
+                for(int k = l; k < r; k++)
+                    f[l][r] = Math.min(f[l][r], f[l][k] + f[k + 1][r] + s[r] - s[l - 1]);
+            }
+        }
+        
+        System.out.println(f[1][n]);
+    }
+}
+```
+
+
+
++ 整数划分(https://www.acwing.com/problem/content/902/)
+
+```java
+import java.io.*;
+
+class Main{
+    
+    public static int N = 1010, mod = (int)1e9 + 7;
+    // 从1-i个物品中选，体积恰好为j的选法数量
+    static int[][] f = new int[N][N];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        for(int i = 0; i <= n; i++) f[i][0] = 1;
+        
+        for(int i = 1; i <= n; i++){
+            for(int j = 0; j <= n; j++){
+                f[i][j] = f[i - 1][j] % mod;
+                if(j >= i) f[i][j] = (f[i - 1][j] + f[i][j - i]) % mod;
+            }
+        }
+        System.out.println(f[n][n]);
+    }
+}
+```
+
