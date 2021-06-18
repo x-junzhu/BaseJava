@@ -3110,3 +3110,66 @@ class Main{
 }
 ```
 
+
+
++ 没有上司的舞会(https://www.acwing.com/problem/content/287/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 6010;
+    static int[] e = new int[N];
+    static int[] h = new int[N];
+    static int[] ne = new int[N];
+    static int idx;
+    
+    static boolean[] has_father = new boolean[N];
+    static int[] happy = new int[N];
+    static int[][] f = new int[N][2];
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        
+        for(int i = 1; i <= n; i++) happy[i] = Integer.parseInt(br.readLine());
+        Arrays.fill(h, -1);
+        for(int i = 0; i < n - 1; i++){
+            String[] fLine = br.readLine().split(" ");
+            int a = Integer.parseInt(fLine[0]);
+            int b = Integer.parseInt(fLine[1]);
+            has_father[a] = true;
+            add(b, a);
+        }
+        
+        int root = 1;
+        while(has_father[root]) root++;
+        
+        dfs(root);
+        
+        int res = Math.max(f[root][0], f[root][1]);
+        System.out.println(res);
+        
+    }
+    
+    public static void dfs(int u){
+        f[u][1] = happy[u];
+        
+        for(int i = h[u]; i != -1; i = ne[i]){
+            int j = e[i];
+            dfs(j);
+            f[u][1] += f[j][0];
+            f[u][0] += Math.max(f[j][0], f[j][1]);
+        }
+    }
+    
+    public static void add(int k, int x){
+        e[idx] = x;
+        ne[idx] = h[k];
+        h[k] = idx++;
+    }
+}
+```
+
