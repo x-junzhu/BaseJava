@@ -3173,3 +3173,62 @@ class Main{
 }
 ```
 
+
+
++ 滑雪(https://www.acwing.com/problem/content/903/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    
+    public static final int N = 310;
+    static int[][] h = new int[N][N];
+    static int[][] f = new int[N][N];
+    
+    static int[] dx = {-1, 0, 1, 0};
+    static int[] dy = {0, 1, 0, -1};
+    
+    static int n;
+    static int m;
+    
+    public static void main(String[] args) throws IOException{
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] fLine = br.readLine().split(" ");
+        n = Integer.parseInt(fLine[0]);
+        m = Integer.parseInt(fLine[1]);
+        
+        for(int i = 1; i <= n; i++)
+        {
+            String[] sLine = br.readLine().split(" ");
+            for(int j = 1; j <= m; j++)
+                h[i][j] = Integer.parseInt(sLine[j - 1]);
+        }
+        
+        for(int i = 0; i < N; i++) Arrays.fill(f[i], -1);
+        
+        int res = 0;
+        for(int i = 1; i <= n; i++)
+            for(int j = 1; j <= m; j++)
+                res = Math.max(res, dp(i, j));
+        System.out.println(res);
+        
+    }
+    
+    public static int dp(int x, int y){
+        if(f[x][y] != -1) return f[x][y];
+        
+        f[x][y] = 1;
+        for(int i = 0; i < 4; i++){
+            int a = x + dx[i];
+            int b = y + dy[i];
+            if(a >=1 && a <= n && b >= 1 && b <= m && h[a][b] < h[x][y])
+                f[x][y] = Math.max(f[x][y], dp(a, b) + 1);
+        }
+        return f[x][y];
+    }
+}
+```
+
