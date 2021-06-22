@@ -3232,3 +3232,109 @@ class Main{
 }
 ```
 
+
+
+### 6. 贪心
+
++ 区间选点(https://www.acwing.com/problem/content/907/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.lang.Comparable;
+class Main{
+    static Range[] ranges;
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        ranges = new Range[n];
+        
+        for(int i = 0; i < n; i++){
+            String[] fLine = br.readLine().split(" ");
+            int a = Integer.parseInt(fLine[0]);
+            int b = Integer.parseInt(fLine[1]);
+            ranges[i] = new Range(a, b);
+        }
+        
+        Arrays.sort(ranges);
+        
+        int res = 0;
+        int ed = (int)-1e9;
+        for(int i = 0; i < n; i++){
+            if(ranges[i].l > ed){
+                res++;
+                ed = ranges[i].r;
+            }
+        }
+        System.out.println(res);
+        
+    }
+}
+
+class Range implements Comparable<Range>{
+    int l;
+    int r;
+    
+    public Range(int l, int r){
+        this.l = l;
+        this.r = r;
+    }
+    
+    public int compareTo(Range o){
+        return this.r - o.r;
+    }
+}
+```
+
+
+
++ 最大不相交区间数量(https://www.acwing.com/problem/content/910/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.util.Comparator;
+
+class Main{
+    static Range[] ranges;
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        ranges = new Range[n];
+        
+        for(int i = 0; i < n; i++){
+            String[] fLine = br.readLine().split(" ");
+            int a = Integer.parseInt(fLine[0]);
+            int b = Integer.parseInt(fLine[1]);
+            ranges[i] = new Range(a, b);
+        }
+        
+        Arrays.sort(ranges, new Comparator<Range>(){
+           public int compare(Range o1, Range o2){
+               return o1.r - o2.r;
+           } 
+        });
+        
+        int res = 0;
+        int ed = (int)-1e9;
+        for(int i = 0; i < n; i++){
+            if(ranges[i].l > ed){
+                res++;
+                ed = ranges[i].r;
+            }
+        }
+        System.out.println(res);
+    }
+}
+
+class Range{
+    int l;
+    int r;
+    public Range(int l, int r){
+        this.l = l;
+        this.r = r;
+    }
+}
+```
+
