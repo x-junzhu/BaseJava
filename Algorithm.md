@@ -3338,3 +3338,55 @@ class Range{
 }
 ```
 
+
+
++ 区间分组(https://www.acwing.com/problem/content/908/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+import java.lang.Comparable;
+import java.util.PriorityQueue;
+
+class Main{
+    static Range[] ranges;
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        ranges = new Range[n];
+        for(int i = 0; i < n; i++){
+            String[] fLine = br.readLine().split(" ");
+            int a = Integer.parseInt(fLine[0]);
+            int b = Integer.parseInt(fLine[1]);
+            ranges[i] = new Range(a, b);
+        }
+        
+        Arrays.sort(ranges);
+        
+        PriorityQueue<Integer> h = new PriorityQueue<>();
+        for(int i = 0; i < n; i++){
+            Range t = ranges[i];
+            if(h.isEmpty() || h.peek() >= t.l) h.add(t.r);
+            else {
+                h.poll();
+                h.add(t.r);
+            }
+        }
+        
+        System.out.println(h.size());
+    }
+}
+
+class Range implements Comparable<Range>{
+    int l;
+    int r;
+    public Range(int l, int r){
+        this.l = l;
+        this.r = r;
+    }
+    public int compareTo(Range o){
+        return this.l - o.l;
+    }
+}
+```
+
