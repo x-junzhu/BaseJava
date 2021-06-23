@@ -3390,3 +3390,33 @@ class Range implements Comparable<Range>{
 }
 ```
 
+
+
++ 合并果子(https://www.acwing.com/problem/content/150/)
+
+```java
+import java.io.*;
+import java.util.PriorityQueue;
+
+class Main{
+    
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        // trim()去除首尾的空格
+        int n = Integer.parseInt(br.readLine().trim());
+        
+        PriorityQueue<Integer> heap = new PriorityQueue<>();
+        String[] fLine = br.readLine().split(" ");
+        for(int i = 0; i < n; i++) heap.add(Integer.parseInt(fLine[i]));
+        int res = 0;
+        while(heap.size() > 1){
+            int a = heap.poll();
+            int b = heap.poll();
+            res += a + b;
+            heap.add(a + b);
+        }
+        System.out.println(res);
+    }
+}
+```
+
