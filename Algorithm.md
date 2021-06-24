@@ -3420,3 +3420,28 @@ class Main{
 }
 ```
 
+
+
++ 货仓选址(https://www.acwing.com/problem/content/106/)
+
+```java
+import java.io.*;
+import java.util.Arrays;
+
+class Main{
+    public static final int N = 100010;
+    static int[] a = new int[N];
+    public static void main(String[] args) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        String[] fLine = br.readLine().split(" ");
+        
+        for(int i = 0; i < n; i++) a[i] = Integer.parseInt(fLine[i]);
+        Arrays.sort(a, 0, n);
+        int res = 0;
+        for(int i = 0; i < n; i++) res += Math.abs(a[i] - a[n / 2]);
+        System.out.println(res);
+    }
+}
+```
+
