@@ -3445,3 +3445,25 @@ class Main{
 }
 ```
 
+
+
++ lc 11: 盛水最多的容器(https://leetcode-cn.com/problems/container-with-most-water)
+
+```java
+class Solution {
+    public int maxArea(int[] height) {
+        int n = height.length;
+        int l = 0, r = n - 1;
+        int res = 0;
+        while(l < r){
+            // 获取当前两个指针之间的面积(min是获取容器的短板)
+            int area = Math.min(height[l], height[r]) * (r - l);
+            res = Math.max(res, area);
+            if(height[l] <= height[r]) l++;
+            else r--;
+        }
+        return res;
+    }
+}
+```
+
