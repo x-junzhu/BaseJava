@@ -1007,6 +1007,47 @@ class Main{
 }
 ```
 
++ 剑指 offer 09: 用两个栈实现队列
+
+```java
+class CQueue {
+    Deque<Integer> s1;
+    Deque<Integer> s2; 
+    public CQueue() {
+        s1 = new LinkedList<Integer>();
+        s2 = new LinkedList<Integer>();
+    }
+    
+    public void appendTail(int value) {
+        s1.add(value);
+    }
+    
+    public int deleteHead() {
+        if(s2.isEmpty()){
+            while(!s1.isEmpty()){
+                s2.add(s1.pop());
+            }
+        }
+
+        if(s2.isEmpty()){
+            return -1;
+        } else{
+            int deleteItem = s2.pop();
+            return deleteItem;
+        }
+    }
+}
+
+/**
+ * Your CQueue object will be instantiated and called as such:
+ * CQueue obj = new CQueue();
+ * obj.appendTail(value);
+ * int param_2 = obj.deleteHead();
+ */
+```
+
+
+
 + 滑动窗口(https://www.acwing.com/problem/content/156/)
 
 ```java
