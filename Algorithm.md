@@ -197,6 +197,28 @@ class Main{
 }
 ```
 
++ 剑指offer 11. 旋转数组中的最小值
+
+```java
+class Solution {
+    public int minArray(int[] numbers) {
+        int n = numbers.length - 1;
+        // 排除数组中分界点出相等的元素
+        while(n > 0 && numbers[0] == numbers[n]) n--;
+        if(numbers[n] >= numbers[0]) return numbers[0];
+        int l = 0, r = n;
+        while(l < r){
+            int mid = l + r >> 1;
+            if(numbers[mid] < numbers[0]) r = mid;
+            else l = mid + 1;
+        }
+        return numbers[r];
+    }
+}
+```
+
+
+
 > 2.2 双指针算法
 
 + 最长连续不重复子序列(https://www.acwing.com/problem/content/801/)
