@@ -117,6 +117,46 @@ public static long mergeSort(int[] a, int l, int r){
 
 
 
++ 剑指offer 45: 把数组排成最小的数
+
+```java
+// 自定义排序
+class Solution {
+    public String minNumber(int[] nums) {
+        int n = nums.length;
+        String[] str = new String[n];
+        for(int i = 0; i < n; i++)
+            str[i] = String.valueOf(nums[i]);
+        
+        quick_sort(str, 0, n - 1);
+        StringBuilder sb = new StringBuilder();
+        for(String item: str){
+            sb.append(item);
+        }
+        return sb.toString();
+    }
+
+    static void quick_sort(String[] str, int l, int r){
+        if(l >= r) return;
+        int i = l, j = r;
+        String tmp = str[i];
+        while(i < j){
+            while((str[j] + str[l]).compareTo(str[l] + str[j]) >= 0 && i < j) j--;
+            while((str[i] + str[l]).compareTo(str[l] + str[i]) <= 0 && i < j) i++;
+            tmp = str[i];
+            str[i] = str[j];
+            str[j] = tmp;
+        }
+        str[i] = str[l];
+        str[l] = tmp;
+        quick_sort(str, l, i - 1);
+        quick_sort(str, i + 1, r);
+    }
+}
+```
+
+
+
 ### 2. 搜索算法
 
 > 2.1 二分查找
