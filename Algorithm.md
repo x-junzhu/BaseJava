@@ -2785,6 +2785,28 @@ class Main{
 
 
 
++ 剑指offer 44: 数字序列中某一位的数字(https://leetcode-cn.com/problems/shu-zi-xu-lie-zhong-mou-yi-wei-de-shu-zi-lcof/)
+
+```java
+class Solution {
+    public int findNthDigit(int n) {
+        int digit = 1; // 数位
+        long start = 1; // 起始位置 如10~99, start = 10
+        long count = 9; // 某个digit内包含的数字位数 如10~99 占了180位 (99-10+1) * 2
+        while(n > count){
+            n -= count;
+            digit += 1;
+            start *= 10;
+            count = 9 * start * digit;
+        }
+        long num = start + (n - 1) / digit;
+        return Long.toString(num).charAt((n - 1) % digit) - '0';
+    }
+}
+```
+
+
+
 ### 5. 动态规划
 
 + 01背包问题(https://www.acwing.com/problem/content/2/)
