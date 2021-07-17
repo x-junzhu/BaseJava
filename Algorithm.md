@@ -3395,6 +3395,29 @@ class Main{
 
 
 
++ 剑指offer 62: 圆圈中最后剩下的数字(https://leetcode-cn.com/problems/yuan-quan-zhong-zui-hou-sheng-xia-de-shu-zi-lcof/)
+
+```java
+class Solution {
+    /* 约瑟夫环
+    dp[i] = (dp[i - 1] + m) % i
+    dp[i - 1] = (dp[i - 2] + m) % i
+    ...
+    dp[2] = (dp[1] + m) % 1
+    dp[1] = 0
+    */
+    public int lastRemaining(int n, int m) {
+        int x = 0;
+        for(int i = 1; i <= n; i++){
+            x = (x + m) % i;
+        }
+        return x;
+    }
+}
+```
+
+
+
 ### 6. 贪心
 
 + 区间选点(https://www.acwing.com/problem/content/907/)
