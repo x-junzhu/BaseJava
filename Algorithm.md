@@ -2636,6 +2636,35 @@ class Main{
 
 
 
++ 剑指offer 65: 不用加减乘除做加法(https://leetcode-cn.com/problems/bu-yong-jia-jian-cheng-chu-zuo-jia-fa-lcof/)
+
+```java
+/*
+设两数字的二进制形式 a, b，其求和 s = a + b，a(i) 代表 a 的二进制第 i 位，则分为以下四种情况：
+a[i]    b[i]    无进位和n[i]    进位c[i+1]
+ 0        0        0             0
+ 0        1        1             0
+ 1        0        1             0
+ 1        1        0             1
+观察发现，无进位和 与 异或运算 规律相同，进位 和 与运算 规律相同（并需左移一位）
+(和 s ) =（非进位和 n ）+（进位 c ）。即可将 s = a + b 转化为
+*/
+class Solution {
+    public int add(int a, int b) {
+        while(b != 0){
+            int c = (a & b) << 1;
+            a ^= b;
+            b = c;
+        }
+        return a;
+    }
+}
+```
+
+
+
+
+
 + 快速幂(https://www.acwing.com/problem/content/877/)
 
 ```java
