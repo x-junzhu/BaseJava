@@ -1037,6 +1037,29 @@ class Main{
 
 
 
++ 剑指offer 31:栈的压入、栈的弹出(https://leetcode-cn.com/problems/zhan-de-ya-ru-dan-chu-xu-lie-lcof/)
+
+```java
+class Solution {
+    public boolean validateStackSequences(int[] pushed, int[] popped) {
+        Stack<Integer> stack = new Stack<>();
+        int j = 0;
+        for(int i = 0; i < pushed.length; i++){
+            stack.push(pushed[i]);
+            while(!stack.isEmpty() && stack.peek() == popped[j]){
+                stack.pop();
+                j++;
+            }
+        }
+        return stack.isEmpty();
+    }
+}
+```
+
+
+
+
+
 + 模拟队列(https://www.acwing.com/problem/content/831/)
 
 ```java
