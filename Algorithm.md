@@ -1574,6 +1574,44 @@ class Solution {
 
 
 
++ 剑指offer 26：树的子结构(https://leetcode-cn.com/problems/shu-de-zi-jie-gou-lcof/)
+
+```java
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode(int x) { val = x; }
+ * }
+ */
+/*
+
+isSubStructure(A, B) 函数：结束的条件(满足之一即可)
+1.以 节点 A 为根节点的子树 包含树 B ，对应 recur(A, B)；
+2.树 B 是 树 A 左子树 的子结构，对应 isSubStructure(A.left, B)；
+3.树 B 是 树 A 右子树 的子结构，对应 isSubStructure(A.right, B)；
+
+*/
+class Solution {
+    public boolean isSubStructure(TreeNode A, TreeNode B) {
+        if(A == null || B == null) return false;
+        return recur(A, B) || isSubStructure(A.left, B) || isSubStructure(A.right, B);
+    }
+
+    boolean recur(TreeNode l, TreeNode r){
+        if(r == null) return true;
+        if(l == null || l.val != r.val) return false;
+        return recur(l.left, r.left) && recur(l.right, r.right);
+    }
+}
+```
+
+
+
+
+
 + 图中点的层次(https://www.acwing.com/problem/content/849/)
 
 ```java
