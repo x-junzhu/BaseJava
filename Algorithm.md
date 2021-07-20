@@ -2977,7 +2977,7 @@ class Solution {
 
 
 
-+ 剑指offer 14-I：剪绳子(https://leetcode-cn.com/problems/jian-sheng-zi-lcof/)
++ 剑指offer 14-I：剪绳子I(https://leetcode-cn.com/problems/jian-sheng-zi-lcof/)
 
 ```java
 /*
@@ -3003,6 +3003,33 @@ class Solution {
     }
 }
 ```
+
+
+
++ 剑指offer 14-II：剪绳子II(https://leetcode-cn.com/problems/jian-sheng-zi-ii-lcof/)
+
+```java
+/*
+通过快速幂解决计算过程中数字越界问题
+*/
+class Solution {
+    public static final int mod = (int)1e9 + 7;
+    public int cuttingRope(int n) {
+        if(n <= 3) return n - 1;
+        int b = n % 3;
+        long rem = 1, x = 3;
+        for(int a = n / 3 - 1; a > 0; a /= 2){
+            if (a % 2 == 1) rem = (rem * x) % mod;
+            x = x * x % mod;
+        }
+        if(b == 0) return (int)(rem * 3 % mod);
+        if(b == 1) return (int)(rem * 4 % mod);
+        return (int)(rem * 6 % mod);
+    }
+}
+```
+
+
 
 
 
