@@ -41,6 +41,35 @@ mysql 的查询流程大致是：
 器将使用mysql 语法规则验证和解析查询；预处理器则根据一些mysql 规则进一步检查解析数是否合法。查询优化器当解析树被认为是合法的了，并且由优化器将其转化成执行计划。一条查询可以有很多种执行方式，
       最后都返回相同的结果。优化器的作用就是找到这其中最好的执行计划。然后，mysql 默认使用的BTREE 索引，并且一个大致方向是:无论怎么折腾sql，至少在目前来说，mysql 最多只用到表中的一个索引。
 
+## 1.3 mysql基本设置
+
+> 字符集
+
+①查看当前字符集
+
+show variables like '%char%';
+
+②修改当前数据库配置文件
+
+```mysql
+[mysqld]
+# 设置mysql的安装⽬目录
+basedir=D:\developerSetting\mysql-5.7.29\
+# 设置mysql数据库的数据的存放⽬目录
+datadir=D:\developerSetting\mysql-5.7.29\data\
+# 设置mysql的端⼝口号
+port = 3306
+#skip-grant-tables
+# 设置字符集编码(支持中文)
+character_set_server=utf8
+[mysql]
+default-character-set=utf8
+[client]
+default-character-set=utf8
+```
+
+
+
 ## 2. 基本介绍
 
 7种Join理论
