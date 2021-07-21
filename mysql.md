@@ -41,7 +41,7 @@ mysql 的查询流程大致是：
 器将使用mysql 语法规则验证和解析查询；预处理器则根据一些mysql 规则进一步检查解析数是否合法。查询优化器当解析树被认为是合法的了，并且由优化器将其转化成执行计划。一条查询可以有很多种执行方式，
       最后都返回相同的结果。优化器的作用就是找到这其中最好的执行计划。然后，mysql 默认使用的BTREE 索引，并且一个大致方向是:无论怎么折腾sql，至少在目前来说，mysql 最多只用到表中的一个索引。
 
-## 1.3 mysql基本设置
+### 1.3 mysql基本设置
 
 > 字符集
 
@@ -68,7 +68,64 @@ default-character-set=utf8
 default-character-set=utf8
 ```
 
+> show profile 查看sql执行周期
 
+查看profile是否开启 show variables like '%profiling%';
+
+如果没有开启，可以执行set profiling=1 开启,然后可以使用**show profiles**查看最近执行SQL语句。
+
+
+
+### 1.4 SQL执行顺序
+
+手写SQL的执行顺序：
+
+```sql
+select distinct
+		< select_list >
+from 
+		< left_table > < join_type >
+join < right_table >  on < join_condition >
+where
+		< where_condition >
+group by
+		< group_by_list >
+having
+		< having_condition >
+order by 
+		< order_by_condition >
+limit
+		< limit_number >
+```
+
+真正执行的顺序：
+	随着Mysql 版本的更新换代，其优化器也在不断的升级，优化器会分析不同执行顺序产生的性能消耗不同而动
+态调整执行顺序。下面是经常出现的查询顺序：
+
+
+
+![avatar](picture/mysql_order.png)
+
+![avatar](picture/mysql_order3.png)
+
+### 1.5 MyIASM和InnoDB
+
+| 对比项         | MyIASM                                                 | InnoDB                                                       |
+| -------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
+| 外键           | 不支持                                                 | 支持                                                         |
+| 事务           | 不支持                                                 | 支持                                                         |
+| 行表锁         | 表锁，即使操作一条记录也会锁住整个表，不适合高并发操作 | 行锁，操作时只锁住一行，不对其他行有影响，**适合高并发操作** |
+| 缓存           | 只缓存索引，不缓存真实数据                             | 不仅缓存索引还要缓存真实数据，对内存要求较高，而且内存大小对性能有决定性的影响 |
+| 关注点         | 读性能                                                 | 并发写、事务、资源                                           |
+| 默认安装       | Y                                                      | Y                                                            |
+| 默认使用       | N                                                      | Y                                                            |
+| 自带系统表使用 | Y                                                      | N                                                            |
+
+> 常用命令
+
+①show engines:查看所有的数据库引擎
+
+②show variables like '%storage_engine%' 查看默认的数据库引擎
 
 ## 2. 基本介绍
 
