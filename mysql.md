@@ -127,15 +127,127 @@ limit
 
 ②show variables like '%storage_engine%' 查看默认的数据库引擎
 
-## 2. 基本介绍
+## 2. SQL基本语句
 
-7种Join理论
+### 2.1 7种Join理论
+
+![avatar](picture/sql_join.png)
+
+### 2.2 建表语句
+
+```sql
+CREATE TABLE `t_dept` (
+`id` INT(11) NOT NULL AUTO_INCREMENT,
+`deptName` VARCHAR(30) DEFAULT NULL,
+`address` VARCHAR(40) DEFAULT NULL,
+PRIMARY KEY (`id`)
+) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `t_emp` (
+`id` INT(11) NOT NULL AUTO_INCREMENT,
+`name` VARCHAR(20) DEFAULT NULL,
+`age` INT(3) DEFAULT NULL,
+`deptId` INT(11) DEFAULT NULL,
+empno int not null,
+PRIMARY KEY (`id`),
+KEY `idx_dept_id` (`deptId`)
+) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+INSERT INTO t_dept(deptName,address) VALUES('华山','华山');
+INSERT INTO t_dept(deptName,address) VALUES('丐帮','洛阳');
+INSERT INTO t_dept(deptName,address) VALUES('峨眉','峨眉山');
+INSERT INTO t_dept(deptName,address) VALUES('武当','武当山');
+INSERT INTO t_dept(deptName,address) VALUES('明教','光明顶');
+INSERT INTO t_dept(deptName,address) VALUES('少林','少林寺');
+
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('风清扬',90,1,100001);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('岳不群',50,1,100002);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('令狐冲',24,1,100003);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('洪七公',70,2,100004);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('乔峰',35,2,100005);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('灭绝师太',70,3,100006);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('周芷若',20,3,100007);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('张三丰',100,4,100008);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('张无忌',25,5,100009);
+INSERT INTO t_emp(NAME,age,deptId,empno) VALUES('韦小宝',18,null,100010);
+```
+
+### 2.3 案例
+
+```sql
+# 1.所有有门派人员的信息（要求显示门派名称）内连接
+select e.name, d.deptName from t_emp e inner join t_dept d on e.deptId=d.id;
+# 2.列出所有人员及其门派信息
+select e.id, e.name, d.deptName from t_emp e left join t_dept d on e.deptId=d.id;
+# 3.所有无门派人士
+select * from t_emp where deptId is null;
+# 4.所有无人的门派
+select d.* from t_dept d left join t_emp e on d.id=e.deptId where e.deptId is null;
+# 5.所有人员和门派的对应关系
+select * from t_emp e left join t_dept d on e.deptId=d.id 
+union 
+select * from t_emp e right join t_dept d on e.deptId=d.id;
+# 6.所有没有入门派的人员和没人入的门派
+select * from t_emp e left join t_dept d on e.deptId=d.id where e.deptId is null
+union
+select * from t_dept d left join t_emp e on e.deptId=d.id where e.deptId is null;
+# 7.添加CEO字段
+alter table t_dept add CEO INT(11);
+update t_dept set CEO=2 where id=1;
+update t_dept set CEO=4 where id=2;
+update t_dept set CEO=6 where id=3;
+update t_dept set CEO=8 where id=4;
+update t_dept set CEO=9 where id=5;
+# 8.求各个门派对应的掌门人名称
+select d.deptName, e.name from t_dept d left join t_emp e on e.id=d.CEO where e.name is not null;
+# 9.求所有当上掌门人的平均年龄
+select AVG(e.age) from t_dept d left join t_emp e on e.id=d.CEO;
+# 10.求所有人物对应的掌门名称
+select ed.name as employee,c.name as boss 
+from (select e.name,d.ceo from t_emp e left join t_dept d on e.deptId=d.id) ed 
+left join t_emp c on ed.ceo=c.id;
+```
+
+## 3. 索引优化分析
+
+### 3.1 索引的概念
+
+>  什么是索引？
+
+​		MySQL官方对索引的定义为：索引（index)是帮助MySQL高效获取数据的数据结构。可以得到索引的本质：索引是数据结构，可以理解为**排好序的快速查找数据结构。**
+
+> 优缺点
+
+优点：
+
++ 提高数据检索的效率，降低数据库的IO成本。
++ 通过索引列对数据进行排序，降低数据排序的成本，降低了CPU的消耗。
+
+缺点：
+
++ 虽然索引大大提高了查询速度，同时却会降低更新表的速度，如对表进行INSERT、UPDATE和DELETE。因为
+  更新表时，MySQL不仅要保存数据，还要保存一下索引文件每次更新添加了索引列的字段，都会调整因为
+  更新所带来的键值变化后的索引信息。
++ 实际上索引也是一张表，该表保存了主键与索引字段，并指向实体表的记录，所以索引列也是要占用空间
+  的。
+
+### 3.2 MySQL索引
+
+> BTree索引
+
++ 叶子节点具有相同的深度，叶节点的指针为空
++ 所有索引元素不重复
++ 节点中的数据索引从左到右递增排列
+
+![avatar](picture/mysql_btree.png)
 
 
+
+> B+Tree索引
 
 索引的基本理论
 
-什么是索引？
+
 
 为什么存在建了索引但是查询反而效果差？
 
