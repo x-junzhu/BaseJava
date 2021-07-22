@@ -245,6 +245,66 @@ left join t_emp c on ed.ceo=c.id;
 
 > B+Tree索引
 
++ 非叶子节点不存储data,只存储索引(冗余)，可以放更多的索引
++ 叶子节点包含所有的索引字段
++ 叶子节点用指针相连，提高区间的访问性能
+
+![avatar](picture/mysql_btree_p.png)
+
+## 4. Explain性能分析
+
+### 4.1 概念
+
+​		使用EXPLAIN 关键字可以模拟优化器执行SQL 查询语句，从而知道MySQL 是如何处理你的SQL 语句的。分
+析你的查询语句或是表结构的性能瓶颈。
+
+​		用法： Explain+SQL 语句，返回结果如图所示
+
+![avatar](picture/mysql_explain_result.png)
+
+> SQL语句准备
+
+```sql
+CREATE TABLE t1(id INT(10) AUTO_INCREMENT,content VARCHAR(100) NULL , PRIMARY KEY (id));
+CREATE TABLE t2(id INT(10) AUTO_INCREMENT,content VARCHAR(100) NULL , PRIMARY KEY (id));
+CREATE TABLE t3(id INT(10) AUTO_INCREMENT,content VARCHAR(100) NULL , PRIMARY KEY (id));
+CREATE TABLE t4(id INT(10) AUTO_INCREMENT,content VARCHAR(100) NULL , PRIMARY KEY (id));
+
+INSERT INTO t1(content) VALUES(CONCAT('t1_',FLOOR(1+RAND()*1000)));
+INSERT INTO t2(content) VALUES(CONCAT('t2_',FLOOR(1+RAND()*1000)));
+INSERT INTO t3(content) VALUES(CONCAT('t3_',FLOOR(1+RAND()*1000)));
+INSERT INTO t4(content) VALUES(CONCAT('t4_',FLOOR(1+RAND()*1000)));
+```
+
+### 4.2 Explain返回结果分析
+
+> 1 id
+
+select 查询的序列号,包含一组数字，表示查询中执行select 子句或操作表的顺序。
+
+①id 相同，执行顺序由上至下
+
+```sql
+explain select * from t1,t2,t3 where t1.id=t2.id and t2.id=t3.id;
+```
+
+![avatar](picture/mysql_explain_id_1.png)
+
+②id 不同，id 不同，如果是子查询，id 的序号会递增，id 值越大优先级越高，越先被执行
+
+```sql
+explain select t2.* from t2 where id=(select id from t1 where id=(select t3.id from t3 where t3.content=''));
+```
+
+![avatar](picture/mysql_explain_id_2.png)
+
+③有相同也有不同
+
+```sql
+```
+
+
+
 索引的基本理论
 
 
