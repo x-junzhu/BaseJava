@@ -1494,6 +1494,47 @@ class Main{
 
 
 
++ lc 123:二叉树中的最大路径和(https://leetcode-cn.com/problems/binary-tree-maximum-path-sum/)
+
+```java
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    int ans = -999999;
+    public int maxPathSum(TreeNode root) {
+        dfs(root);
+        return ans;
+    }
+
+    int dfs(TreeNode root){
+        if(root == null) return 0;
+
+        int left = dfs(root.left);
+        int right = dfs(root.right);
+
+        ans = Math.max(ans, left + root.val + right);
+        return Math.max(0, Math.max(left, right) + root.val); 
+    }
+}
+```
+
+
+
+
+
 + 剑指offer 28: 对称的二叉树(https://leetcode-cn.com/problems/dui-cheng-de-er-cha-shu-lcof/)
 
 ```java
