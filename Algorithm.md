@@ -975,6 +975,105 @@ class Main{
 }
 ```
 
+
+
++ lc 146：LRU缓存机制(https://leetcode-cn.com/problems/lru-cache/)
+
+```java
+class LRUCache {
+
+    private HashMap<Integer, Node> map;
+    private int capacity;
+    private DoubleLinkedList cache;
+
+    public LRUCache(int capacity) {
+        this.capacity = capacity;
+        map = new HashMap<>();
+        cache = new DoubleLinkedList();
+
+    }
+    
+    public int get(int key) {
+        if(!map.containsKey(key)) return -1;
+        int val = map.get(key).val;
+        put(key, val);
+        return val;
+    }
+    
+    public void put(int key, int value) {
+        Node node = new Node(key, value);
+        if(map.containsKey(key)){
+            cache.delete(map.get(key));
+            cache.addFirst(node);
+            map.put(key, node);
+        } else{
+            if(map.size() == capacity){
+                int k = cache.deleteLast();
+                map.remove(k);
+            }
+            cache.addFirst(node);
+            map.put(key, node);
+        }
+    }
+}
+
+class DoubleLinkedList{
+    Node head;
+    Node tail;
+
+    public DoubleLinkedList(){
+        head = new Node(0, 0);
+        tail = new Node(0, 0);
+        head.next = tail;
+        tail.prev = head;
+    }
+
+    public void addFirst(Node node){
+        node.next = head.next;
+        head.next.prev = node;
+        node.prev = head;
+        head.next = node;
+    }
+
+    public int delete(Node node){
+        int key = node.key;
+        node.next.prev = node.prev;
+        node.prev.next = node.next;
+
+        return key;
+    }
+
+    public int deleteLast(){
+        if(head.next == tail) return -1;
+        return delete(tail.prev);
+    }
+}
+
+class Node{
+    int key;
+    int val;
+    Node prev;
+    Node next;
+
+    public Node(int key, int val){
+        this.key = key;
+        this.val = val;
+    }
+
+}
+
+/**
+ * Your LRUCache object will be instantiated and called as such:
+ * LRUCache obj = new LRUCache(capacity);
+ * int param_1 = obj.get(key);
+ * obj.put(key,value);
+ */
+```
+
+
+
+
+
 > 3.3  栈与队列
 
 + 模拟栈(https://www.acwing.com/problem/content/830/)
