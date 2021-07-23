@@ -1494,7 +1494,7 @@ class Main{
 
 
 
-+ lc 123:二叉树中的最大路径和(https://leetcode-cn.com/problems/binary-tree-maximum-path-sum/)
++ lc 124:二叉树中的最大路径和(https://leetcode-cn.com/problems/binary-tree-maximum-path-sum/)
 
 ```java
 /**
