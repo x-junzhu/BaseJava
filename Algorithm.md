@@ -982,15 +982,14 @@ class Main{
 ```java
 class LRUCache {
 
-    private HashMap<Integer, Node> map;
-    private int capacity;
-    private DoubleLinkedList cache;
+    HashMap<Integer, Node> map;
+    DoubleLinkedList cache;
+    int cap;
 
     public LRUCache(int capacity) {
-        this.capacity = capacity;
+        this.cap = capacity;
         map = new HashMap<>();
         cache = new DoubleLinkedList();
-
     }
     
     public int get(int key) {
@@ -1003,11 +1002,12 @@ class LRUCache {
     public void put(int key, int value) {
         Node node = new Node(key, value);
         if(map.containsKey(key)){
+            // 注意此处删除的是key对应的node节点,不是待插入的node节点
             cache.delete(map.get(key));
             cache.addFirst(node);
             map.put(key, node);
-        } else{
-            if(map.size() == capacity){
+        }else{
+            if(map.size() == cap){
                 int k = cache.deleteLast();
                 map.remove(k);
             }
@@ -1031,16 +1031,16 @@ class DoubleLinkedList{
     public void addFirst(Node node){
         node.next = head.next;
         head.next.prev = node;
+
         node.prev = head;
         head.next = node;
     }
-
+    // 返回删除节点的Key
     public int delete(Node node){
-        int key = node.key;
+        int k = node.key;
         node.next.prev = node.prev;
         node.prev.next = node.next;
-
-        return key;
+        return k;
     }
 
     public int deleteLast(){
@@ -1054,12 +1054,10 @@ class Node{
     int val;
     Node prev;
     Node next;
-
     public Node(int key, int val){
         this.key = key;
         this.val = val;
     }
-
 }
 
 /**
