@@ -301,7 +301,62 @@ explain select t2.* from t2 where id=(select id from t1 where id=(select t3.id f
 ③有相同也有不同
 
 ```sql
+# TODO 存在问题
+explain select t2.* from t2,(select * from t3 where t3.content='') s3 where s3.id=t2.id;
 ```
+
+![avatar](picture/mysql_explain_id3.png)
+
+​	id如果相同，可以认为是一组，从上往下顺序执行；在所有组中，id值越大，优先级越高，越先执行衍生= DERIVED
+
+
+
+**关注点：id 号每个号码，表示一趟独立的查询。一个sql 的查询趟数越少越好。**
+
+> 2 select_type
+
+select_type 代表查询的类型，主要是用于区别普通查询、联合查询、子查询等的复杂查询。
+
+| select_type 属性     | 含义                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| SIMPLE               | 简单的select 查询,查询中不包含子查询或者UNION                |
+| PRIMARY              | 查询中若包含任何复杂的子部分，最外层查询则被标记为Primary    |
+| DERIVED              | 在FROM 列表中包含的子查询被标记为DERIVED(衍生)<br>MySQL 会递归执行这些子查询, 把结果放在临时表里。 |
+| SUBQUERY             | 在SELECT或WHERE列表中包含了子查询                            |
+| DEPEDENT SUBQUERY    | 在SELECT或WHERE列表中包含了子查询,子查询基于外层             |
+| UNCACHEABLE SUBQUERY | 无法使用缓存的子查询                                         |
+| UNION                | 若第二个SELECT出现在UNION之后，则被标记为UNION；<br/>若UNION包含在FROM子句的子查询中,外层SELECT将被标记为：DERIVED |
+| UNION RESULT         | 从UNION表获取结果的SELECT                                    |
+
+①SIMPLE
+
+SIMPLE 代表单表查询；
+
+![avatar](picture/mysql_explain_selectType_1.png)
+
+②PRIMARY
+
+查询中若包含任何复杂的子部分，最外层查询则被标记为Primary。
+
+③DERIVED
+
+在FROM 列表中包含的子查询被标记为DERIVED(衍生),MySQL 会递归执行这些子查询, 把结果放在临时表里。
+
+④SUBQUERY
+
+在SELECT 或WHERE 列表中包含了子查询。
+
+![avatar](picture/mysql_explain_selectType_4.png)
+
+⑤DEPENDENT SUBQUERY
+
+在SELECT 或WHERE 列表中包含了子查询,子查询基于外层。
+
+
+
+
+
+
 
 
 
