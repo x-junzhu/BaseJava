@@ -352,13 +352,153 @@ SIMPLE 代表单表查询；
 
 在SELECT 或WHERE 列表中包含了子查询,子查询基于外层。
 
+都是where 后面的条件，subquery 是单个值，dependent subquery 是一组值。
+
+⑥UNCACHEABLE SUBQUREY
+
+⑦UNION
+
+若第二个SELECT 出现在UNION 之后，则被标记为UNION；若UNION 包含在FROM 子句的子查询中,外层SELECT
+将被标记为：DERIVED。
+
+![avatar](picture/mysql_explain_selectType_7.png)
+
+⑧UNION RESULT
+
+从UNION 表获取结果的SELECT
+
+> 3 table
+
+这个数据是基于哪张表的
+
+> 4 type
+
+type 是查询的访问类型。是较为重要的一个指标，结果值从最好到最坏依次是:
+
+system > const > eq_ref > ref > fulltext > ref_or_null > index_merge > unique_subquery > index_subquery > range > index > ALL 
+
+一般来说，得保证查询至少达到range 级别，最好能达到ref。
+
+①system
+
+表只有一行记录（等于系统表），这是const 类型的特列，平时不会出现，这个也可以忽略不计
+
+②const
+
+表示通过索引一次就找到了,const 用于比较primary key 或者unique 索引。因为只匹配一行数据，所以很快
+如将主键置于where 列表中，MySQL 就能将该查询转换为一个常量。
+
+```sql
+explain select * from (select * from t1 where t1.id=1) s;
+```
 
 
 
+![avatar](picture/mysql_explain_type_1.png)
+
+③eq_ref
+
+唯一性索引扫描，对于每个索引键，表中只有一条记录与之匹配。常见于主键或唯一索引扫描。
+
+```sql
+explain select * from t1,t2 where t1.id=t2.id;
+```
+
+![avatar](picture/mysql_explain_type_2.png)
+
+④ref
+
+​	非唯一性索引扫描，返回匹配某个单独值的所有行.本质上也是一种索引访问，它返回所有匹配某个单独值的行，然而，它可能会找到多个符合条件的行，所以他应该属于查找和扫描的混合体。
+
+在content上没有建立索引之前
+
+![avatar](picture/mysql_explain_type_4_1.png)
+
+在content上没有建立索引之后
+
+```sql
+create index idx_content on t2(content);
+```
+
+![avatar](picture/mysql_explain_type_4_2.png)
+
+⑤range
+
+只检索给定范围的行,使用一个索引来选择行。key 列显示使用了哪个索引一般就是在你的where 语句中出现了between、<、>、in 等的查询这种范围扫描索引扫描比全表扫描要好，因为它只需要开始于索引的某一点，而结束语另一点，不用扫描全部索引。
+
+![avatar](picture/mysql_explain_type_5.png)
+
+![avatar](picture/mysql_explain_type_5_1.png)
+
+⑥index
+
+出现index是sql使用了索引但是没用通过索引进行过滤，一般是使用了覆盖索引或者是利用索引进行了排序分组。
+
+![avatar](picture/mysql_explain_type_6.png)
+
+⑦all
+
+Full Table Scan，将遍历全表以找到匹配的行.
+
+⑧index_merge
+
+在查询过程中需要多个索引组合使用，通常出现在有or 的关键字的sql 中。
+
+⑨ref_or_null
+
+对于某个字段既需要关联条件，也需要null 值得情况下。查询优化器会选择用ref_or_null 连接查询。
+
+![avatar](picture/mysql_explain_type_8.png)
+
+⑩index_subquery
+
+利用索引来关联子查询，不再全表扫描
+
+11unique_subquery
+
+该联接类型类似于index_subquery。子查询中的唯一索引
 
 
 
+> 6 possible_key
 
+显示可能应用在这张表中的索引，一个或多个。查询涉及到的字段上若存在索引，则该索引将被列出，但不一定被查询实际使用。
+
+> 7 key
+
+实际使用的索引。如果为NULL，则没有使用索引。
+
+> 8 key_len
+
+表示索引中使用的字节数，可通过该列计算查询中使用的索引的长度。key_len 字段能够帮你检查是否充分的利用上了索引。ken_len 越长，说明索引使用的越充分。
+
+如何计算：
+①先看索引上字段的类型+长度比如int=4 ; varchar(20) =20 ; char(20) =20
+②如果是varchar 或者char 这种字符串字段，视字符集要乘不同的值，比如utf-8 要乘3,GBK 要乘2，
+③varchar 这种动态字符串要加2 个字节
+④允许为空的字段要加1 个字节
+第一组：key_len=age 的字节长度+name 的字节长度=4+1 + ( 20*3+2)=5+62=67
+第二组：key_len=age 的字节长度=4+1=5
+
+> 9 ref
+
+显示索引的哪一列被使用了，如果可能的话，是一个常数。哪些列或常量被用于查找索引列上的值。
+
+> 10 rows
+
+rows 列显示MySQL 认为它执行查询时必须检查的行数。越少越好！
+
+> 11 Extra
+
+其他的额外重要的信息
+
++ Using filesort:说明mysql 会对数据使用一个外部的索引排序，而不是按照表内的索引顺序进行读取。MySQL 中无法利用索引完成的排序操作称为“文件排序”。
+
+![avatar](picture/mysql_explain_extra_1.png)
+
+![avatar](picture/mysql_explain_extra_2.png)
+
++ 
 
 索引的基本理论
 
