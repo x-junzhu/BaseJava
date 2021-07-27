@@ -492,13 +492,28 @@ rows 列显示MySQL 认为它执行查询时必须检查的行数。越少越好
 
 其他的额外重要的信息
 
-+ Using filesort:说明mysql 会对数据使用一个外部的索引排序，而不是按照表内的索引顺序进行读取。MySQL 中无法利用索引完成的排序操作称为“文件排序”。
++ Using filesort:说明mysql 会对数据使用一个外部的索引排序，而不是按照表内的索引顺序进行读取。MySQL 中无法利用索引完成的排序操作称为“文件排序”。优化前后对比：
 
 ![avatar](picture/mysql_explain_extra_1.png)
 
 ![avatar](picture/mysql_explain_extra_2.png)
 
-+ 
++ Using temporary:使了用临时表保存中间结果,MySQL 在对查询结果排序时使用临时表。常见于排序order by 和分组查询group
+  by。优化前后对比：
+
+![avatar](picture/mysql_explain_extra_3.png)
+
++ Using index:Using index 代表表示相应的select 操作中使用了覆盖索引(Covering Index)，避免访问了表的数据行，效率不错！
+  如果同时出现using where，表明索引被用来执行索引键值的查找;如果没有同时出现using where，表明索引只是
+  用来读取数据而非利用索引执行查找。
+  利用索引进行了排序或分组。
++ Using where:表明使用了where 过滤。
++ Using join buffer:使用了连接缓存。
++ impossible where:where 子句的值总是false，不能用来获取任何元组。
++ select tables optimized away:在没有GROUPBY 子句的情况下，基于索引优化MIN/MAX 操作或者对于MyISAM 存储引擎优化COUNT(*)操
+  作，不必等到执行阶段再进行计算，查询执行计划生成的阶段即完成优化。
+
+
 
 索引的基本理论
 
