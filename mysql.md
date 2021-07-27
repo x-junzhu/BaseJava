@@ -513,7 +513,63 @@ rows 列显示MySQL 认为它执行查询时必须检查的行数。越少越好
 + select tables optimized away:在没有GROUPBY 子句的情况下，基于索引优化MIN/MAX 操作或者对于MyISAM 存储引擎优化COUNT(*)操
   作，不必等到执行阶段再进行计算，查询执行计划生成的阶段即完成优化。
 
+## 5 单表使用索引常见的失效案例
 
+```sql
+# 建表语句，通过存储过程在dept插入1_0000条数据，在emp中插入50_0000条数据
+CREATE TABLE `dept` (
+`id` INT(11) NOT NULL AUTO_INCREMENT,
+`deptName` VARCHAR(30) DEFAULT NULL,
+`address` VARCHAR(40) DEFAULT NULL,
+ceo INT NULL ,
+PRIMARY KEY (`id`)
+) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+CREATE TABLE `emp` (
+`id` INT(11) NOT NULL AUTO_INCREMENT,
+`empno` INT NOT NULL ,
+`name` VARCHAR(20) DEFAULT NULL,
+`age` INT(3) DEFAULT NULL,
+`deptId` INT(11) DEFAULT NULL,
+PRIMARY KEY (`id`)
+#CONSTRAINT `fk_dept_id` FOREIGN KEY (`deptId`) REFERENCES `t_dept` (`id`)
+) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+# 查询：show variables like 'log_bin_trust_function_creators';
+# 设置：set global log_bin_trust_function_creators=1;
+# 当然，如上设置只存在于当前操作，想要永久生效，需要写入到配置文件中：
+# 在[mysqld]中加上log_bin_trust_function_creators=1
+```
+
+### 5.1 全值匹配我最爱
+
+```sql
+EXPLAIN SELECT SQL_NO_CACHE * FROM emp WHERE emp.age=30
+EXPLAIN SELECT SQL_NO_CACHE * FROM emp WHERE emp.age=30 and deptid=4
+EXPLAIN SELECT SQL_NO_CACHE * FROM emp WHERE emp.age=30 and deptid=4 AND emp.name = 'abcd'
+```
+
+![avatar](picture/mysql_example_1.png)
+
+```sql
+# 建立索引
+CREATE INDEX idx_age_deptid_name ON emp(age,deptid,NAME);
+```
+
+![avatar](picture/mysql_example_2.png)
+
+**结论：全值匹配我最爱指的是，查询的字段按照顺序在索引中都可以匹配到！**
+
+注：SQL 中查询字段的顺序，跟使用索引中字段的顺序，没有关系。优化器会在不影响SQL 执行结果的前提下，给你自动地优化。
+
+### 5.2 最佳左前缀法则
+
+![avatar](picture/mysql_example_3.png)
+
+ 查询字段与索引字段顺序的不同会导致，索引无法充分使用，甚至索引失效！
+原因：使用复合索引，需要遵循最佳左前缀法则，即如果索引了多列，要遵守最左前缀法则。指的是查询从索
+引的最左前列开始并且不跳过索引中的列。
+**结论：过滤条件要使用索引必须按照索引建立时的顺序，依次满足，一旦跳过某个字段，索引后面的字段都无
+法被使用。**
 
 索引的基本理论
 
