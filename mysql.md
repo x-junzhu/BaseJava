@@ -571,6 +571,95 @@ CREATE INDEX idx_age_deptid_name ON emp(age,deptid,NAME);
 **结论：过滤条件要使用索引必须按照索引建立时的顺序，依次满足，一旦跳过某个字段，索引后面的字段都无
 法被使用。**
 
+### 5.3 不要在索引列上做任何计算
+
+不在索引列上做任何操作（计算、函数、(自动or 手动)类型转换），会导致索引失效而转向全表扫描。
+
+> 在查询列上做了转换
+
+**字符串不加单引号，则会在name 列上做一次转换！**
+
+```sql
+create index idx_name on emp(name);
+# name 为varchar类型
+explain select sql_no_cache * from emp where name='15';
+explain select sql_no_cache * from emp where name=15;
+```
+
+
+
+![avatar](picture/mysql_explain_example_5_3.png)
+
+
+
+### 5.4 索引列上不能有范围查询
+
+```sql
+# 使用范围查询后索引的使用效率大大降低，从key_len长度可以看出
+explain select sql_no_cache * from emp where emp.age=30 and deptid=5 and emp.name='wjHIvc';
+explain select sql_no_cache * from emp where emp.age=30 and deptid<5 and emp.name='wjHIvc';
+```
+
+
+
+![avatar](picture/mysql_explain_example_5_4.png)
+
+**建议：将可能做范围查询的字段的索引顺序放在最后**
+
+### 5.5 尽量使用覆盖索引
+
+即查询列和索引列一直，不要写select *!
+
+![avatar](picture/mysql_explain_example_5_5_1.png)
+
+### 5.6 使用不等于(!= 或者<>)的时候
+
+mysql 在使用不等于(!= 或者<>)时，有时会无法使用索引会导致全表扫描。
+
+![avatar](picture/mysql_explain_example_5_6.png)
+
+
+
+### 5.7 字段的is not null 和is null
+
+![avatar](picture/mysql_explain_example_5_7_1.png)
+
+
+
+当字段允许为Null 的条件下：
+
+![avatar](picture/mysql_explain_example_5_7_2.png)
+
+**is not null 用不到索引，is null 可以用到索引。**
+
+### 5.8 like 的前后模糊匹配
+
+```sql
+# 在name字段上建立索引
+create index idx_name on emp(name);e
+```
+
+![avatar](picture/msyql_explain_example_5_8_1.png)
+
+**前缀不能出现模糊匹配！**
+
+### 5.9 减少使用or
+
+![avatar](picture/mysql_explain_example_5_9.png)
+
+使用union all 或者union 来替代：
+
+
+
+### 5.X 小结
+
+全值匹配我最爱，最左前缀要遵守；
+带头大哥不能死，中间兄弟不能断；
+索引列上少计算，范围之后全失效；
+LIKE 百分写最右，覆盖索引不写*；
+不等空值还有OR，索引影响要注意；
+VAR 引号不可丢，SQL 优化有诀窍。
+
 索引的基本理论
 
 
