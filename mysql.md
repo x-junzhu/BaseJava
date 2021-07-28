@@ -660,6 +660,93 @@ LIKE 百分写最右，覆盖索引不写*；
 不等空值还有OR，索引影响要注意；
 VAR 引号不可丢，SQL 优化有诀窍。
 
+## 6. 关联查询优化
+
+```sql
+# 建表语句
+CREATE TABLE IF NOT EXISTS `class` (
+`id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+`card` INT(10) UNSIGNED NOT NULL,
+PRIMARY KEY (`id`)
+);
+CREATE TABLE IF NOT EXISTS `book` (
+`bookid` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+`card` INT(10) UNSIGNED NOT NULL,
+PRIMARY KEY (`bookid`)
+);
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO class(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+INSERT INTO book(card) VALUES(FLOOR(1 + (RAND() * 20)));
+```
+
+### 6.1 left join
+
+①没有索引
+
+```sql
+explain select sql_no_cache * from class left join book on class.card=book.card;
+```
+
+
+
+![avatar](picture/mysql_explain_leftJoin_6_1.png)
+
+②如何优化？在哪个表上建立索引？
+
+```sql
+create index idx_card on book(card);
+explain select sql_no_cache * from class left join book on class.card=book.card;
+```
+
+![avatar](picture/mysql_explain_leftJoin_6_1_2.png)
+
+③删除book 表的索引：drop index idx_card on book;
+
+在class 表上建立索引：alter table class add index idx_card(card);
+
+![avatar](picture/mysql_explain_leftJoin_6_1_3.png)
+
+结论：
+①在优化关联查询时，只有在被驱动表上建立索引才有效！
+②left join 时，左侧的为驱动表，右侧为被驱动表！
+
 索引的基本理论
 
 
