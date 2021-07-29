@@ -747,6 +747,32 @@ explain select sql_no_cache * from class left join book on class.card=book.card;
 ①在优化关联查询时，只有在被驱动表上建立索引才有效！
 ②left join 时，左侧的为驱动表，右侧为被驱动表！
 
+### 6.2 inner join
+
+```sql
+explain select * from book inner join class on class.card=book.card;
+```
+
+![avatar](picture/mysql_explain_query_6_2_1.png)
+
+②两个查询字段调换顺序，发现结果也是一样的
+
+![avatar](picture/mysql_explain_query_6_2_2.png)
+
+③在book 表中，删除9 条记录，再进行inner join
+
+![avatar](picture/mysql_explain_query_6_2_3.png)
+
+④**结论：inner join 时，mysql 会自己帮你把小结果集的表选为驱动表。**
+
+### 6.3 四个关联查询案例分析
+
+
+
+
+
+
+
 索引的基本理论
 
 
