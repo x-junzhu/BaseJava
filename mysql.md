@@ -769,6 +769,36 @@ explain select * from book inner join class on class.card=book.card;
 
 
 
+## 7. 子查询优化
+
+①取所有不为掌门人的员工，按年龄分组！
+
+```sql
+select age ,count(*) from t_emp where id not in (select ceo from t_dept where ceo is not null) group by age;
+```
+
+![avatar](picture/mysql_explain_subquery_7_1.png)
+
+②如何优化？
+
++ 解决dept 表的全表扫描，建立ceo 字段的索引：
+
+![avatar](picture/mysql_explain_subquery_7_2.png)
+
++ 此时，再次查询：
+
+![avatar](picture/mysql_explain_subquery_7_3.png)
+
++ 进一步优化，替换not in。
+
+```sql
+select age ,count(*) from emp e left join dept d on e.id=d.ceo where d.id is null group by age;
+```
+
+![avatar](picture/mysql_explain_subquery_7_4.png)
+
+**结论： 在范围判断时，尽量不要使用not in 和not exists，使用left join on xxx is null 代替。**
+
 
 
 
