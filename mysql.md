@@ -769,6 +769,167 @@ explain select * from book inner join class on class.card=book.card;
 
 
 
+## 7 排序分组优化
+
+where条件和on的判断这些过滤条件，作为优先优化的部分，是要被先考虑的！其次，如果有分组和排序，那么也要考虑grouo by 和order by。
+
+### 7.1 无过滤不索引
+
+```sql
+# 建立索引
+create index idx_age_deptid_name on emp (age,deptid,name);
+explain select * from emp where age=40 order by deptid;
+# using filesort 说明进行了手工排序！原因在于没有where 作为过滤条件！
+explain select * from emp order by age,deptid;
+explain select * from emp order by age,deptid limit 10;
+```
+
+
+
+![avatar](picture/mysql_explain_sort_7_1.png)
+
+**结论： 无过滤，不索引。where，limit 都相当于一种过滤条件，所以才能使用上索引！**
+
+### 7.2 顺序错，必排序
+
+```sql
+# 1
+explain select * from emp where age=45 order by deptid,name;
+# 2
+explain select * from emp where age=45 order by deptid,empno;
+# 3 empno 字段并没有建立索引，因此也无法用到索引，此字段需要排序！,where 两侧列的顺序可以变换，效果相同，但是order by 列的顺序不能随便变换！
+explain select * from emp where age=45 order by name,deptid;
+# 4
+explain select * from emp where deptid=45 order by age;
+```
+
+
+
+![avatar](picture/mysql_explain_sort_7_2_1.png)
+
+deptid 作为过滤条件的字段，无法使用索引(age-deptid-name)，因此排序没法用上索引
+
+![avatar](picture/mysql_explain_sort_7_2_2.png)
+
+
+
+### 7.3 方向反，必排序
+
+```sql
+# 1 如果可以用上索引的字段都使用正序或者逆序，实际上是没有任何影响的，无非将结果集调换顺序。
+explain select * from emp where age=45 order by deptid desc, name desc ;
+# 2 如果排序的字段，顺序有差异，就需要将差异的部分，进行一次倒置顺序，因此还是需要手动排序的！
+explain select * from emp where age=45 order by deptid asc, name desc ;
+```
+
+![avatar](picture/mysql_explain_sort_7_3_1.png)
+
+
+
+### 7.4 索引的选择
+
+①首先，清除emp 上面的所有索引，只保留主键索引！
+
+```sql
+drop index idx_age_deptid_name on emp;
+```
+
+②查询：年龄为30 岁的，且员工编号小于101000 的用户，按用户名称排序
+
+```sql
+explain SELECT SQL_NO_CACHE * FROM emp WHERE age =30 AND empno <101000 ORDER BY NAME ;
+```
+
+③全表扫描肯定是不被允许的，因此我们要考虑优化。
+
+![avatar](picture/mysql_explain_sort_7_4_1.png)
+
+思路：首先需要让where 的过滤条件，用上索引；
+查询中，age, empno 是查询的过滤条件，而name 则是排序的字段，因此我们来创建一个此三个字段的复合索引：
+
+```sql
+create index idx_age_empno_name on emp(age,empno,name);
+```
+
+![avatar](picture/mysql_explain_sort_7_4_2.png)
+
+再次查询，发现using filesort 依然存在。
+原因： empno 是范围查询，因此导致了索引失效，所以name 字段无法使用索引排序。
+所以，三个字段的符合索引，没有意义，因为empno 和name 字段只能选择其一！
+
+④解决： 鱼与熊掌不可兼得，因此，要么选择empno,要么选择name
+
+```sql
+drop index idx_age_empno_name on emp;
+create index idx_age_name on emp(age,name);
+create index idx_age_empno on emp(age,empno);
+```
+
+![avatar](picture/mysql_explain_sort_7_4_3.png)
+
+
+
+![avatar](picture/mysql_explain_sort_7_4_4.png)
+
+原因：所有的**排序都是在条件过滤之后才执行的**，所以如果条件过滤了大部分数据的话，几百几千条数据进行排序其实并不是很消耗性能，即使索引优化了排序但实际提升性能很有限。相对的empno<101000 这个条件如果没有用到索引的话，要对几万条的数据进行扫描，这是非常消耗性能的，使用empno 字段的范围查询，过滤性更好（empno 从100000 开始）！
+
+
+
+**结论： 当范围条件和group by 或者order by 的字段出现二选一时，优先观察条件字段的过滤数量，如果过滤的数据足够多，而需要排序的数据并不多时，优先把索引放在范围字段上。反之，亦然。**
+
+### 7.5 using filesort
+
+> 双路排序
+
+​		MySQL 4.1 之前是使用双路排序,字面意思就是两次扫描磁盘，最终得到数据，读取行指针和orderby 列，对他们进行排序，然后扫描已经排序好的列表，按照列表中的值重新从列表中读取对应的数据输出。
+
+​		从磁盘取排序字段，在buffer 进行排序，再从磁盘取其他字段。
+
+​		简单来说，取一批数据，要对磁盘进行了两次扫描，众所周知，I/O 是很耗时的，所以在mysql4.1 之后，出现了第二种改进的算法，就是单路排序.
+
+> 单路排序
+
+​		从磁盘读取查询需要的所有列，按照order by 列在buffer 对它们进行排序，然后扫描排序后的列表进行输出，它的效率更快一些，避免了第二次读取数据。并且把随机I/O 变成了顺序IO,但是它会使用更多的空间，因为它把每一行都保存在内存中了。
+
+**单路排序的问题**
+
+​		由于单路是后出的，总体而言好过双路。但是存在以下问题：
+​		在sort_buffer 中，方法B 比方法A 要多占用很多空间，因为方法B 是把所有字段都取出, 所以有可能取出的数据的总大小超出了sort_buffer 的容量，导致每次只能取sort_buffer 容量大小的数据，进行排序（创建tmp 文件，多路合并），排完再取取sort_buffer 容量大小，再排……从而多次I/O。
+​		结论：本来想省一次I/O 操作，反而导致了大量的I/O 操作，反而得不偿失。
+
+
+
+> 如何优化
+
+①增大sort_butter_size 参数的设置
+
+​		不管用哪种算法，提高这个参数都会提高效率，当然，要根据系统的能力去提高，因为这个参数是针对每个进程的1M-8M 之间调整。
+
+②增大max_length_for_sort_data 参数的设置
+
+​		mysql 使用单路排序的前提是排序的字段大小要小于max_length_for_sort_data。提高这个参数，会增加用改进算法的概率。但是如果设的太高，数据总容量超出sort_buffer_size 的概率就增大，明显症状是高的磁盘I/O 活动和低的处理器使用率。（1024-8192 之间调整）
+
+③减少select 后面的查询的字段。
+
+​		当Query 的字段大小总和小于max_length_for_sort_data 而且排序字段不是TEXT|BLOB 类型时，会用改进后的算法——单路排序， 否则用老算法——多路排序。
+​		两种算法的数据都有可能超出sort_buffer 的容量，超出之后，会创建tmp 文件进行合并排序，导致多次I/O，但是用单路排序算法的风险会更大一些,所以要提高sort_buffer_size。
+
+
+
+### 7.6 覆盖索引
+
+覆盖索引：SQL 只需要通过索引就可以返回查询所需要的数据，而不必通过二级索引查到主键之后再去查询数据。
+
+![avatar](picture/mysql_explain_sort_7_6.png)
+
+
+
+### 7.7 group by
+
+group by 使用索引的原则几乎跟order by 一致，唯一区别是group by 即使没有过滤条件用到索引，也可以直接使用索引。
+
+![avatar](picture/mysql_explain_sort_7_7.png)
+
 
 
 
