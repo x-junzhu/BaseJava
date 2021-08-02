@@ -1645,8 +1645,6 @@ class Solution {
 
 
 
-
-
 + 剑指offer 28: 对称的二叉树(https://leetcode-cn.com/problems/dui-cheng-de-er-cha-shu-lcof/)
 
 ```java
@@ -1757,6 +1755,56 @@ class Solution {
         if(r == null) return true;
         if(l == null || l.val != r.val) return false;
         return recur(l.left, r.left) && recur(l.right, r.right);
+    }
+}
+```
+
+
+
++ 剑指offer 55-II:平衡二叉树
+
+```java
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public boolean isBalanced(TreeNode root) {
+		if (root == null) return true;
+        Stack<TreeNode> s = new Stack<>();
+        s.push(root);
+        while(!s.isEmpty()){
+            TreeNode t = s.pop();
+            int diff = leftHeight(t) - rightHeight(t);
+            if(Math.abs(diff) > 1) return false;
+            if(t.left != null) s.push(t.left);
+            if(t.right != null) s.push(t.right);
+        }
+        return true;
+    }
+    
+    // 计算节点的高度
+    public int height(TreeNode node){
+        int left = (node.left == null? 0: height(node.left));
+        int right = (node.right == null? 0: height(node.right));
+        return Math.max(left, right) + 1;
+    }
+    
+    // 计算左子树的高度
+    public int leftHeight(TreeNode node){
+        if(node.left == null) return 0;
+        else return height(node.left);
+    }
+    
+    // 计算右子树的高度
+    public int rightHeight(TreeNode node){
+        if(node.right == null) return 0;
+        else return height(node.right);
     }
 }
 ```
