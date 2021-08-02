@@ -1,5 +1,15 @@
 ### ByteDance
 
+
+
+1. 集合框架：大致分几类（List/Queue/Deque/Map/Set），每一类的继承/实现关系（如ArrayList实现List，继承AbstractList，List又继承Collection），几个常用的集合框架的底层实现原理（一个HashMap就能问出N多问题），哪些是线程安全的，哪些不是。
+2. JVM内存模型：线程独享内存/堆内存/Perm区、年轻代/老年代、GC机制、常用的GC算法、强引用/弱引用/软引用……
+3. 并发编程：synchronized、volatile、ReentrantLock都有什么用，区别，场景……阻塞队列/非阻塞队列……线程的状态，线程调度常用的方法（wait/yield/join/notify）……
+4. 几种最常见的设计模式：单例/代理/工厂……
+5. IO，NIO……
+
+
+
 > 第一个
 
 
