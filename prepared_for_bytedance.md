@@ -8,6 +8,93 @@
 4. 几种最常见的设计模式：单例/代理/工厂……
 5. IO，NIO……
 
+## 1 集合框架
+
+### 1.1 集合之间的继承关系
+
+
+
+### 1.2 HashMap
+
+```java
+public class HashMap<K,V> extends AbstractMap<K,V>
+    implements Map<K,V>, Cloneable, Serializable {
+ 	
+    /* 
+    初始化数组的容量，为什么是2^4不是其他的非2的整次幂数，如19,21等
+    因为在计算当前元素的位置i时,需要利用&运算
+    i = hash % m 但是求余的效率低，不如与运算效率高
+    我们可以将求余操作转换为与运算，如数组长度16，当前元素的hash值为11，7
+    11:0000 1011
+       0000 1111 &
+       0000 1011 = 11
+     9:0000 1001
+       0000 1111 &
+       0000 0111 = 9
+    通过与操作可以很快求出元素的位置，并且保证不同的hash值得到不同的位置i
+    如果选择的值不是2的整次幂，如13
+    11:0000 1011
+       0000 1101 &
+       0000 1001 = 9
+     9:0000 1001
+       0000 1101 &
+       0000 1001 = 9
+    很容易就产生了哈希冲突
+    */
+    static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
+    
+    // 数组的最大容量
+    static final int MAXIMUM_CAPACITY = 1 << 30;
+    
+    /*
+    默认的加载因子，为什么不是0.5或者1或者其他小于1的数字
+    假设为1,那么数组需要等到全部填满时才进行扩容，这样数组的空间利用率提高了，但是哈希碰撞的次数增加，使得链表的长度加长
+    假设为0.5，那么数组的利用率比较低，只填一半就开始扩容了，空间利用率低，但是减少了哈希碰撞
+    所以，进过学者的大量统计分析得出0.75是平衡空间利用率和哈希碰撞的最好参数
+    */
+    static final float DEFAULT_LOAD_FACTOR = 0.75f;
+    
+    // 链表进行树化时的最小长度
+    static final int TREEIFY_THRESHOLD = 8;
+    
+    // 树转化为链表的临界值
+    static final int UNTREEIFY_THRESHOLD = 6;
+    
+    // 主数组上的链表转化为树时，数组的最小长度
+    static final int MIN_TREEIFY_CAPACITY = 64;
+    
+    // 静态内部类：Node节点的数据结构
+    static class Node<K,V> implements Map.Entry<K,V> {
+        final int hash;
+        final K key;
+        V value;
+        Node<K,V> next;
+    }
+    
+    // 定义主数组
+    transient Node<K,V>[] table;
+    
+    // 已经修改的元素个数
+    transient int modCount;
+    
+    // table中已经放入元素的个数
+    transient int size;
+    
+    // table数组的大小
+    int threshold;
+    
+    // 加载因子
+    final float loadFactor;
+    
+}
+```
+
+
+
+
+
+
+
 
 
 > 第一个
