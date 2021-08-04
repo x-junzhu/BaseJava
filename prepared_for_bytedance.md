@@ -12,9 +12,17 @@
 
 ### 1.1 集合之间的继承关系
 
+> List Set Map集合下常见的类
 
+![avatar](picture/java_collection.png)
+
+> Queue接口关系
+
+![avatar](picture/java_queue.png)
 
 ### 1.2 HashMap
+
+> HashMap源码解析
 
 ```java
 public class HashMap<K,V> extends AbstractMap<K,V>
@@ -91,7 +99,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
 
 
+> HashMap常见问题
 
+为什么底层使用数组+链表+红黑树，不使用AVL树或者普通二叉树？
+
+普通的二叉树在插入过程中个，可能造成节点都在树的左子树或者右子树，使得二叉树退化成链表，查询效率依旧很低
+
+平衡二叉树，通过减少树的高度，每次插入时保证左右子树的高度差不大于1，解决了树的单一侧节点过多导致的查询效率低。但是平衡二叉树，牺牲了插入性能(如果左右子树不平衡，会进行左旋或者右旋，使得插入效率低)，使得查询性能变高。
+
+红黑树，是在插入性能和查询性能之间做了一个平衡，使得插入效率不是很低，同时保证了查询效率较高
 
 
 
