@@ -22,7 +22,7 @@
 
 ### 1.2 HashMap
 
-> HashMap源码解析
+> HashMap源码解析(1.7)
 
 ```java
 public class HashMap<K,V> extends AbstractMap<K,V>
@@ -110,6 +110,18 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 红黑树，是在插入性能和查询性能之间做了一个平衡，使得插入效率不是很低，同时保证了查询效率较高
 
 
+
+> ConcurrentHashMap(1.8)
+
+sizeCtl的含义
+
+sizeCtl = 0 表示数组未初始化，且数组的初始容量是16
+
+sizeCtl > 0 如果数组未初始化，那么记录的是数组的初始容量，如果数组已经初始化，那么记录的是数组扩容的阈值(数组的初始容量*0.75)
+
+sizeCtl = -1 表示数组正在初始化
+
+sizeCtl < 0 && sizeCtl != -1 表示数组正在扩容，-(n + 1) 表示此时有n个线程正在完成对数组的扩容任务
 
 
 
