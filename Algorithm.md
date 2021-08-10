@@ -435,6 +435,46 @@ public class Solution {
 }
 ```
 
+
+
++ lc 42: 接雨水（https://leetcode-cn.com/problems/trapping-rain-water/）
+
+```java
+import java.util.*;
+
+
+public class Solution {
+    /**
+     * max water
+     * @param arr int整型一维数组 the array
+     * @return long长整型
+     */
+    public long maxWater (int[] arr) {
+        // write code here
+        if(arr.length <= 2) return 0;
+        int left = 0, right = arr.length - 1;
+        
+        int left_max = 0;
+        int right_max = 0;
+        long res = 0L;
+        while(left < right){
+            if(arr[left] < arr[right]){
+                if(arr[left] >= left_max) left_max = arr[left];
+                else res += left_max - arr[left];
+                left++;
+            }else{
+                if(arr[right] >= right_max) right_max = arr[right];
+                else res += right_max - arr[right];
+                right--;
+            }
+        }
+        return res;
+    }
+}
+```
+
+
+
 > 2.3 深度优先搜索和广度优先搜索
 
 + 深度优先搜索(https://www.acwing.com/problem/content/844/)
