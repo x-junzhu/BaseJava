@@ -283,7 +283,7 @@ SynchronousQueue和其他的BlockingQueue不一样, 它不存储元素, 当put()
 
 **线程复用, 可以控制最大并发线程数, 管理线程**
 
-> 线程池: 三大方法、七种策略、四种拒绝策略
+> 线程池: 三大方法、七个参数、四种拒绝策略
 1. 三大方法
 ```java
 public static void main(String[] args) {
