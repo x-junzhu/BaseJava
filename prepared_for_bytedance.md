@@ -254,6 +254,18 @@ MESI缓存一致性协议
 
 
 
+### 1.4 mysql事务
+
+常见名词
+
+索引下推
+
+```sql
+select * from emp where name="john" and age=12;
+# 如果没有索引下推，先根据name从存储引擎中读取数据到server层，然后根据在server层对age属性值进行过滤
+# 如果有索引下推，根据name和age属性做筛选，将筛选之后的结果返回给server
+```
+
 
 
 
