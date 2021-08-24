@@ -219,7 +219,7 @@ Java内存模型, 不存在的东西, 是一种概念, 约定.
 + 不允许read和load、store和write操作之一单独出现。即使用了read必须load，使用了store必须write
 + 不允许线程丢弃他最近的assign操作，即工作变量的数据改变了之后，必须告知主存
 + 不允许一个线程将没有assign的数据从工作内存同步回主内存
-+ 一个新的变量必须在主内存中诞生，不允许工作内存直接使用一个未被初始化的变量。就是怼变量实施use、store操作之前，必须经过assign和load操作
++ 一个新的变量必须在主内存中诞生，不允许工作内存直接使用一个未被初始化的变量。就是对变量实施use、store操作之前，必须经过assign和load操作
 + 一个变量同一时间只有一个线程能对其进行lock。多次lock后，必须执行相同次数的unlock才能解锁
 + 如果对一个变量进行lock操作，会清空所有工作内存中此变量的值，在执行引擎使用这个变量前，必须重新load或assign操作初始化变量的值
 + 如果一个变量没有被lock，就不能对其进行unlock操作。也不能unlock一个被其他线程锁住的变量
@@ -358,7 +358,7 @@ OK，就会出现**数据不一致**的情形，A账户减去50元，而B账户�
 
 > 隔离性(Isolation)
 
-​		MySQL中事务的隔离级别分为四大等级，**读未提交（READ UNCOMMITTED）、读提交 （READ COMMITTED）、可重复读 （REPEATABLE READ）、串行化 （SERIALIZABLE）**。
+​		MySQL中事务的隔离级别分为四大等级，**读未提交（READ UNCOMMITTED）、读已提交 （READ COMMITTED）、可重复读 （REPEATABLE READ）、串行化 （SERIALIZABLE）**。
 
 根据定义，隔离性是指多个事务并发执行的时候，事务内部的操作与其他事务是隔离的，并发执行的各个事务之间不能互相干扰。
 
