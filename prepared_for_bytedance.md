@@ -71,7 +71,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     // 主数组上的链表转化为树时，数组的最小长度
     static final int MIN_TREEIFY_CAPACITY = 64;
     
-    // 静态内部类：Node节点的数据结构
+    // 静态内部类(嵌套类)：Node节点的数据结构
     static class Node<K,V> implements Map.Entry<K,V> {
         final int hash;
         final K key;
@@ -145,7 +145,7 @@ sizeCtl < 0 && sizeCtl != -1 表示数组正在扩容，-(n + 1) 表示此时有
 
 偏向锁升级到轻量级锁：只要存在多个线程(大于等于2)开始竞争当前资源就会升级
 
-偏向锁升级到重量级锁：当前的资源存在重度竞争，或者当前竞争到资源的线程执行时间非常长
+偏向锁升级到重量级锁：当前的资源存在重度竞争，或者当前竞争到资源的线程执行时间非常长。重度竞争会导致多个线程一直在自旋等待，过度消耗CPU资源
 
 
 
