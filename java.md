@@ -68,7 +68,7 @@ long： -2^63 ~ 2^63 - 1
 
   + double：2^-1074 ~ 2^1024 - 1 **(-1)^S\*[2^(E-1023)]\*1.M**
 
-  ![avatar](java-image\float_double.png)
+  ![avatar](javaImage\float_double.png)
 
 **关于浮点型float和double的补充说明：**
 
@@ -77,7 +77,7 @@ long： -2^63 ~ 2^63 - 1
 
 补充：
 
-![avatar](java-image\base.jpg)
+![avatar](javaImage\base.jpg)
 
 
 
