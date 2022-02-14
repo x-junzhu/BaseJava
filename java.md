@@ -191,4 +191,36 @@ StringBuilder：可变字符序列， jdk5.0新增， 线程不安全， 效率�
 + 当对现有的字符串进行连接操作时，也需要重新指定新的内存区域，不能使用原有的value进行赋值
 + 当调用String的replace()方法时修改指定的字符或者字符串时，也需要重新指定新的内存区域。
 
+**字符串常量池中不会存储相同内容的字符串**
+
++ String的String Pool是一个固定大小的HashTable，默认值大小长度是1009。如果放进String Pool的String非常多，就会造成Hash冲突严重，从而导致链表非常长，而链表长了后直接造成的影响就是当调用String.intern时的性能下降。
++ 使用**-XX:StringTableSize**可以设置StringTable的长度
+
+**字符串拼接操作**
+
++ 常量与常量的拼接结果放在常量池中，原理是编译期优化
++ 常量池中不会存在相同内容的常量
++ 只要其中一个是变量，结果就在堆中。变量拼接的原理是StringBuilder
++ 如果拼接的结果调用intern()方法，则主动将常量池中还没有的字符串对象放入池中，并返回此对象地址。
+
+```java
+@Test
+public void test3(){
+    String s1 = "a";
+    String s2 = "b";
+    String s3 = "ab";
+    /*
+    如下的s1 + s2的细节
+    1、StringBuilder s = new StringBuilder();
+    2、s.append("a");
+    3、s.append("b");
+    4、s.toString(); // 约等于new String("ab")
+    */
+    String s4 = s1 + s2;
+    System.out.println(s3 == s4); // false
+}
+```
+
+
+
 ## 2.Java高级编程知识
