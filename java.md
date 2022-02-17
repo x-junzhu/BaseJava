@@ -219,7 +219,122 @@ public void test3(){
     String s4 = s1 + s2;
     System.out.println(s3 == s4); // false
 }
+/*
+通过StringBuilder的append方法的方式添加字符串的效率要远高于使用String的字符串拼接(+)方式
+详情：① StringBuilder的append方法中，自始至终只创建了一个StringBuilder对象，
+使用String拼接的方法过程中，会创建多个StringBuilder对象
+②使用String拼接的方法过程：内存中创建了较多的StringBuilder和String对象，内存占用大；如果要进行垃圾回收会占用较多时间。
+
+改进的方式：使用String的带参构造(基本知道字符串长度)，减少扩容带来的开销，提高效率。
+*/
 ```
+
+> intern的理解
+
+如何保证变量s指向的是字符串常量池中的数据？
+
+方式一：String s = "johncarraway";// 字面量定义的方式
+
+方式二：String s = new String("johncarraway").intern();
+
+
+
+> new String("ab")到底创建了几个对象
+
+两个对象，看字节码
+
+```java
+public class StringNewTest{
+    
+    public static void main(String[] args) throws IOException{
+        
+        String str = new String("ab");
+        /*
+        共两个对象，一是行号0的new String()，在堆空间创建的
+        二是行号4中的 字符串常量池中的对象"ab"
+        */
+    }
+}
+/*对应的字节码
+ 0 new #2 <java/lang/String>
+ 3 dup
+ 4 ldc #3 <ab>
+ 6 invokespecial #4 <java/lang/String.<init> : (Ljava/lang/String;)V>
+ 9 astore_1
+10 return
+*/
+```
+
+> new String("a") + new String("b")一共造了几个对象
+
+```java
+public class StringNewTest{
+    
+    public static void main(String[] args) throws IOException{
+        
+        String str = new String("a") + new String("b");
+        /*
+        对象1：new StringBuilder()
+        对象2：new String("a")
+        对象3：常量池中的对象"a"
+        对象4：new String("b")
+        对象5：常量池中的"b"
+        如果有等号左边，则还会有第六个对象：StringBuilder的toString()方法
+        对象6：return new String()
+        强调，toString()的调用，在字符串常量池中，没有生成"ab"
+        */
+    }
+}
+/*对应的字节码
+ 0 new #2 <java/lang/StringBuilder>
+ 3 dup
+ 4 invokespecial #3 <java/lang/StringBuilder.<init> : ()V>
+ 7 new #4 <java/lang/String>
+10 dup
+11 ldc #5 <a>
+13 invokespecial #6 <java/lang/String.<init> : (Ljava/lang/String;)V>
+16 invokevirtual #7 <java/lang/StringBuilder.append : (Ljava/lang/String;)Ljava/lang/StringBuilder;>
+19 new #4 <java/lang/String>
+22 dup
+23 ldc #8 <b>
+25 invokespecial #6 <java/lang/String.<init> : (Ljava/lang/String;)V>
+28 invokevirtual #7 <java/lang/StringBuilder.append : (Ljava/lang/String;)Ljava/lang/StringBuilder;>
+31 invokevirtual #9 <java/lang/StringBuilder.toString : ()Ljava/lang/String;>
+34 astore_1
+35 return
+*/
+```
+
+> 面试题
+
+```java
+public class StringIntern1{
+    
+    public static void main(String[] args) throws IOException{
+        
+        String s = new String("1");// 在堆空间和字符串常量池中均有一个对象"1"
+        s.intern();// 此时调用此方法没有太大意义，在字符串常量池中已经存在对象"1"了
+        String s2 = "1";
+        System.out.println(s == s2);// jdk6:false  jdk7/8:false
+        
+        String s3 = new String("1") + new String("1");// s3记录的地址为：new String("11")在堆空间的地址
+        // 上一步执行为在字符串常量池中是没有对象"11"的
+        s3.intern();// 此步骤中字符串常量池中存在对象"11"了,如何理解：
+        /*
+        在jdk6中，使用上一行代码执行时，在常量池中生成"11"的地址
+        在jdk7/8中，字符串常量池在堆空间中，我们在字符串常量池中创建"11"时，为了节省空间，保存的是堆空间中new String("11")的地址，所以s3==s4为true
+        */
+        System.out.println(s3 == s4);// jdk6:false  jdk7/8:true
+    }
+    
+}
+```
+
+
+
+
+
+
 
 
 
