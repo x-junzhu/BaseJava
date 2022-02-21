@@ -645,7 +645,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      9:0000 1001
        0000 1101 &
        0000 1001 = 9
-    很容易就产生了哈希冲突
+    很容易就产生了哈希冲突，哈希表的空间利用率较低
     */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
     
@@ -688,7 +688,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
 + 确实产生了hash冲突：扩容+数据结构(提高查询和插入效率)
 
-什么时候扩容？
+> ①**通过扩容解决hash冲突**
+
+**什么时候扩容？**
 
 JDK1.7 
 
@@ -698,22 +700,21 @@ JDK1.8
 
 先添加元素，再判断是否达到阈值
 
-ConcurrentHashMap源码解析(JDK1.7)
+**怎样扩容？**
 
-无参构造
+JDK1.7
 
-```java
-//空参构造
-public ConcurrentHashMap() {
-    //调用本类的带参构造
-    //DEFAULT_INITIAL_CAPACITY = 16
-    //DEFAULT_LOAD_FACTOR = 0.75f
-    //int DEFAULT_CONCURRENCY_LEVEL = 16
-    this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR, DEFAULT_CONCURRENCY_LEVEL);
-}
-```
+添加元素的时候，采用头插法，同时将单向链表的数据进行迁移
 
-HashMap(JDK1.8)在扩容的时候，会维护两个结构，如果当前桶上是链表，可以直接迁移数据，如果当前桶上是红黑树，则会迁移红黑树上的双向链表(因为直接迁移红黑树非常的复杂)
+JDK1.8
+
+添加元素采用尾插法
+
+​	如果对应角标位置是单链表，则将单链表进行数据迁移
+
+​	如果对应角标位置是红黑树，则将双向链表进行迁移，如果迁移完后双向链表的长度小于等于6，则会将红黑树转换成单向链表
+
+**HashMap(JDK1.8)在扩容的时候，会维护两个结构，如果当前桶上是链表，可以直接迁移数据，如果当前桶上是红黑树，则会迁移红黑树上的双向链表(因为直接迁移红黑树非常的复杂)**
 
 ```java
 /* 
@@ -758,48 +759,25 @@ Node<K,V> next;
 
 
 
-带有三个参数的构造函数：一些非核心逻辑的代码已经省略
+**扩容过程中存在的问题？**
 
-```java
-//initialCapacity 定义ConcurrentHashMap存放元素的容量
-//concurrencyLevel 定义ConcurrentHashMap中Segment[]的大小
-public ConcurrentHashMap(int initialCapacity,
-                         float loadFactor, int concurrencyLevel) {
-   
-    int sshift = 0;
-    int ssize = 1;
-    //计算Segment[]的大小，保证是2的幂次方数
-    while (ssize < concurrencyLevel) {
-        ++sshift;
-        ssize <<= 1;
-    }
-    //这两个值用于后面计算Segment[]的角标
-    this.segmentShift = 32 - sshift;
-    this.segmentMask = ssize - 1;
-    
-    //计算每个Segment中存储元素的个数
-    int c = initialCapacity / ssize;
-    if (c * ssize < initialCapacity)
-        ++c;
-    //最小Segment中存储元素的个数为2
-    int cap = MIN_SEGMENT_TABLE_CAPACITY;
-    //矫正每个Segment中存储元素的个数，保证是2的幂次方，最小为2
-    while (cap < c)
-        cap <<= 1;
-    //创建一个Segment对象，作为其他Segment对象的模板
-    Segment<K,V> s0 =
-        new Segment<K,V>(loadFactor, (int)(cap * loadFactor),
-                         (HashEntry<K,V>[])new HashEntry[cap]);
-    Segment<K,V>[] ss = (Segment<K,V>[])new Segment[ssize];
-    //利用Unsafe类，将创建的Segment对象存入0角标位置
-    UNSAFE.putOrderedObject(ss, SBASE, s0); // ordered write of segments[0]
-    this.segments = ss;
-}
-```
+单线程环境下，扩容不存在问题
 
-**综上：ConcurrentHashMap中保存了一个默认长度为16的Segment[]，每个Segment元素中保存了一个默认长度为2的HashEntry[]，我们添加的元素，是存入对应的Segment中的HashEntry[]中。所以ConcurrentHashMap中默认元素的长度是32个，而不是16个**
+多线程环境下
 
-HashMap的add添加元素过程
+JDK1.7：产生环形链表，主要因为尾插法会出现倒序的现象，当一个线程正在准备迁移数据，此时CPU资源被另一个线程抢夺，并完成数据迁移，上一个线程重新获取CPU资源后，会形成环形链表。
+
+JDK1.8：会出现数据丢失现象
+
+> ②**通过数据结构解决哈希冲突**
+
+JDK1.7：如果当前位置出现hash冲突，通过形成单向链表解决冲突问题
+
+JDK1.8：出现冲突时，会形成单向链表，如果单向链表长度超过8时，会转换成红黑树和双向链表(扩容时使用)
+
+
+
+HashMap添加元素过程简要概述
 
 ```java
 从JDK 1.7开始说起:
@@ -829,6 +807,404 @@ threshold：扩容的临界值，=容量*填充因子：16 * 0.75 => 12
 TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树:8
 MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量:64
 ```
+
+
+
+**为了解决HashMap在多线程下的并发安全问题，出现ConcurrentHashMap**
+
+> 谈一谈ConcurrentHashMap
+
+ConcurrentHashMap源码解析(JDK1.7)
+
+从无参构造开始说起
+
+```java
+//空参构造
+public ConcurrentHashMap() {
+    //调用本类的带参构造
+    //DEFAULT_INITIAL_CAPACITY = 16
+    //DEFAULT_LOAD_FACTOR = 0.75f
+    //int DEFAULT_CONCURRENCY_LEVEL = 16
+    this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR, DEFAULT_CONCURRENCY_LEVEL);
+}
+```
+
+<img src="javaImage/segments.png" alt="avatar" style="zoom:80%;" />
+
+> Segment是什么
+
+```java
+static class Segment<K,V> extends ReentrantLock implements Serializable {
+    private static final long serialVersionUID = 2249069246763182397L;
+    final float loadFactor;
+    Segment(float lf) { this.loadFactor = lf; }
+}
+```
+
+我们发现Segment是继承自ReentrantLock的，它可以实现同步操作，从而保证多线程下的安全。因为每个Segment之间的锁互不影响，所以我们也将ConcurrentHashMap中的这种锁机制称之为**分段锁**，这比HashTable的线程安全操作高效的多。
+
+> HashEntry是什么
+
+```java
+//ConcurrentHashMap中真正存储数据的对象
+static final class HashEntry<K,V> {
+    final int hash; //通过运算，得到的键的hash值
+    final K key; // 存入的键
+    volatile V value; //存入的值
+    volatile HashEntry<K,V> next; //记录下一个元素，形成单向链表
+
+    HashEntry(int hash, K key, V value, HashEntry<K,V> next) {
+        this.hash = hash;
+        this.key = key;
+        this.value = value;
+        this.next = next;
+    }
+}
+```
+
+>  ConcurrentHashMap(JDK1.7)如何保证多线程环境下添加安全？
+
+**ConcurrentHashMap的put()**方法
+
+```java
+public V put(K key, V value) {
+    Segment<K,V> s;
+    if (value == null)// hashmap中的value不能为null
+        throw new NullPointerException();
+    //基于key，计算hash值
+    int hash = hash(key);
+    //因为一个键要计算两个数组的索引，为了避免冲突，这里取高位计算Segment[]的索引
+    int j = (hash >>> segmentShift) & segmentMask;
+    //判断该索引位的Segment对象是否创建，没有就创建
+    if ((s = (Segment<K,V>)UNSAFE.getObject          // nonvolatile; recheck
+         (segments, (j << SSHIFT) + SBASE)) == null) //  in ensureSegment
+        s = ensureSegment(j);
+    //调用Segmetn的put方法实现元素添加
+    return s.put(key, hash, value, false);
+}
+```
+
+**ConcurrentHashMap的ensureSegment()方法**
+
+```java
+//创建对应索引位的Segment对象，并返回
+private Segment<K,V> ensureSegment(int k) {
+    final Segment<K,V>[] ss = this.segments;
+    long u = (k << SSHIFT) + SBASE; // raw offset
+    Segment<K,V> seg;
+    //获取，如果为null，即创建
+    if ((seg = (Segment<K,V>)UNSAFE.getObjectVolatile(ss, u)) == null) {
+        //以0角标位的Segment为模板
+        Segment<K,V> proto = ss[0]; // use segment 0 as prototype
+        int cap = proto.table.length;
+        float lf = proto.loadFactor;
+        int threshold = (int)(cap * lf);
+        HashEntry<K,V>[] tab = (HashEntry<K,V>[])new HashEntry[cap];
+        //获取，如果为null，即创建
+        if ((seg = (Segment<K,V>)UNSAFE.getObjectVolatile(ss, u))
+            == null) { // recheck
+            //创建
+            Segment<K,V> s = new Segment<K,V>(lf, threshold, tab);
+            //自旋方式，将创建的Segment对象放到Segment[]中，确保线程安全
+            while ((seg = (Segment<K,V>)UNSAFE.getObjectVolatile(ss, u))
+                   == null) {
+                if (UNSAFE.compareAndSwapObject(ss, u, null, seg = s))
+                    break;
+            }
+        }
+    }
+    //返回
+    return seg;
+}
+```
+
+**Segment的put()方法**
+
+```java
+final V put(K key, int hash, V value, boolean onlyIfAbsent) {
+    //尝试获取锁，获取成功，node为null，代码向下执行
+    //如果有其他线程占据锁对象，那么去做别的事情，而不是一直等待，提升效率
+    //scanAndLockForPut 稍后分析
+    HashEntry<K,V> node = tryLock() ? null :
+        scanAndLockForPut(key, hash, value);
+    V oldValue;
+    try {
+        HashEntry<K,V>[] tab = table;
+        //取hash的低位，计算HashEntry[]的索引
+        int index = (tab.length - 1) & hash;
+        //获取索引位的元素对象
+        HashEntry<K,V> first = entryAt(tab, index);
+        for (HashEntry<K,V> e = first;;) {
+            //获取的元素对象不为空
+            if (e != null) {
+                K k;
+                //如果是重复元素，覆盖原值
+                if ((k = e.key) == key ||
+                    (e.hash == hash && key.equals(k))) {
+                    oldValue = e.value;
+                    if (!onlyIfAbsent) {
+                        e.value = value;
+                        ++modCount;
+                    }
+                    break;
+                }
+                //如果不是重复元素，获取链表的下一个元素，继续循环遍历链表
+                e = e.next;
+            }
+            else { //如果获取到的元素为空
+                //当前添加的键值对的HashEntry对象已经创建
+                if (node != null)
+                    node.setNext(first); //头插法关联即可
+                else
+                    //创建当前添加的键值对的HashEntry对象
+                    node = new HashEntry<K,V>(hash, key, value, first);
+                //添加的元素数量递增
+                int c = count + 1;
+                //判断是否需要扩容
+                if (c > threshold && tab.length < MAXIMUM_CAPACITY)
+                    //需要扩容
+                    rehash(node);
+                else
+                    //不需要扩容
+                    //将当前添加的元素对象，存入数组角标位，完成头插法添加元素
+                    setEntryAt(tab, index, node);
+                ++modCount;
+                count = c;
+                oldValue = null;
+                break;
+            }
+        }
+    } finally {
+        //释放锁
+        unlock();
+    }
+    return oldValue;
+}
+```
+
+**Segment的scanAndLockForPut()方法**
+
+该方法在线程没有获取到锁的情况下，去完成HashEntry对象的创建，提升效率
+
+```java
+private HashEntry<K,V> scanAndLockForPut(K key, int hash, V value) {
+    //获取头部元素
+    HashEntry<K,V> first = entryForHash(this, hash);
+    HashEntry<K,V> e = first;
+    HashEntry<K,V> node = null；
+    int retries = -1; // negative while locating node
+    while (!tryLock()) {
+        //获取锁失败
+        HashEntry<K,V> f; // to recheck first below
+        if (retries < 0) {
+            //没有下一个节点，并且也不是重复元素，创建HashEntry对象，不再遍历
+            if (e == null) {
+                if (node == null) // speculatively create node
+                    node = new HashEntry<K,V>(hash, key, value, null);
+                retries = 0;
+            }
+            else if (key.equals(e.key))
+                //重复元素，不创建HashEntry对象，不再遍历
+                retries = 0;
+            else
+                //继续遍历下一个节点
+                e = e.next;
+        }
+        else if (++retries > MAX_SCAN_RETRIES) {
+            //如果尝试获取锁的次数过多，直接阻塞
+            //MAX_SCAN_RETRIES会根据可用cpu核数来确定
+            lock();
+            break;
+        }
+        else if ((retries & 1) == 0 &&
+                 (f = entryForHash(this, hash)) != first) {
+            //如果期间有别的线程获取锁，重新遍历
+            e = first = f; // re-traverse if entry changed
+            retries = -1;
+        }
+    }
+    return node;
+}
+```
+
+**总结：首先，采用加锁的机制保证多线程下的并发安全，当多个线程操作同一个冲突位置时，只有第一个获取到锁的线程操作该位置，其他线程自旋等待，如果自旋次数超过最大自旋次数则阻塞等待；其次，为了提高多线程下的效率，采用分段锁机制，加锁的时候只针对冲突位置进行加锁，其他未加锁的位置上仍然可以进行操作。**
+
+> ConcurrentHashMap(JDK1.7)如何保证扩容安全？
+
+此处的rehash方法时在包含锁的方法内，所以是线程安全的
+
+```java
+private void rehash(HashEntry<K,V> node) {
+    HashEntry<K,V>[] oldTable = table;
+    int oldCapacity = oldTable.length;
+    //两倍容量
+    int newCapacity = oldCapacity << 1;
+    threshold = (int)(newCapacity * loadFactor);
+    //基于新容量，创建HashEntry数组
+    HashEntry<K,V>[] newTable =
+        (HashEntry<K,V>[]) new HashEntry[newCapacity];
+    int sizeMask = newCapacity - 1;
+   	//实现数据迁移
+    for (int i = 0; i < oldCapacity ; i++) {
+        HashEntry<K,V> e = oldTable[i];
+        if (e != null) {
+            HashEntry<K,V> next = e.next;
+            int idx = e.hash & sizeMask;
+            if (next == null)   //  Single node on list
+                //原位置只有一个元素，直接放到新数组即可
+                newTable[idx] = e;
+            else { // Reuse consecutive sequence at same slot
+                //=========图一=====================
+                HashEntry<K,V> lastRun = e;
+                int lastIdx = idx;
+                for (HashEntry<K,V> last = next;
+                     last != null;
+                     last = last.next) {
+                    int k = last.hash & sizeMask;
+                    if (k != lastIdx) {
+                        lastIdx = k;
+                        lastRun = last;
+                    }
+                }
+                //=========图一=====================
+                
+                //=========图二=====================
+                newTable[lastIdx] = lastRun;
+                //=========图二=====================
+                // Clone remaining nodes
+                //=========图三=====================
+                for (HashEntry<K,V> p = e; p != lastRun; p = p.next) {
+                    V v = p.value;
+                    int h = p.hash;
+                    int k = h & sizeMask;
+                    HashEntry<K,V> n = newTable[k];
+                    //这里旧的HashEntry不会放到新数组
+                    //而是基于原来的数据创建了一个新的HashEntry对象，放入新数组
+                    newTable[k] = new HashEntry<K,V>(h, p.key, v, n);
+                }
+                //=========图三=====================
+            }
+        }
+    }
+    //采用头插法，将新元素加入到数组中
+    int nodeIndex = node.hash & sizeMask; // add the new node
+    node.setNext(newTable[nodeIndex]);
+    newTable[nodeIndex] = node;
+    table = newTable;
+}
+```
+
+> 图1
+
+<img src="javaImage/p1.png" alt="avatar" style="zoom:100%;" />
+
+> 图2
+
+<img src="javaImage/p2.png" alt="avatar" style="zoom:100%;" />
+
+> 图3
+
+<img src="javaImage/p3.png" alt="avatar" style="zoom:100%;" />
+
+带有三个参数的构造函数：一些非核心逻辑的代码已经省略
+
+```java
+//initialCapacity 定义ConcurrentHashMap存放元素的容量
+//concurrencyLevel 定义ConcurrentHashMap中Segment[]的大小
+public ConcurrentHashMap(int initialCapacity,
+                         float loadFactor, int concurrencyLevel) {
+   
+    int sshift = 0;
+    int ssize = 1;
+    //计算Segment[]的大小，保证是2的幂次方数
+    while (ssize < concurrencyLevel) {
+        ++sshift;
+        ssize <<= 1;
+    }
+    //这两个值用于后面计算Segment[]的角标
+    this.segmentShift = 32 - sshift;
+    this.segmentMask = ssize - 1;
+    
+    //计算每个Segment中存储元素的个数
+    int c = initialCapacity / ssize;
+    if (c * ssize < initialCapacity)
+        ++c;
+    //最小Segment中存储元素的个数为2
+    int cap = MIN_SEGMENT_TABLE_CAPACITY;
+    //矫正每个Segment中存储元素的个数，保证是2的幂次方，最小为2
+    while (cap < c)
+        cap <<= 1;
+    //创建一个Segment对象，作为其他Segment对象的模板
+    // Segment是继承ReentrantLock对象，所以Segment本质是一个锁对象，即分段锁
+    Segment<K,V> s0 =
+        new Segment<K,V>(loadFactor, (int)(cap * loadFactor),
+                         (HashEntry<K,V>[])new HashEntry[cap]);
+    Segment<K,V>[] ss = (Segment<K,V>[])new Segment[ssize];
+    //利用Unsafe类，将创建的Segment对象存入0角标位置
+    UNSAFE.putOrderedObject(ss, SBASE, s0); // ordered write of segments[0]
+    this.segments = ss;
+}
+```
+
+**综上：ConcurrentHashMap中保存了一个默认长度为16的Segment[]，每个Segment元素中保存了一个默认长度为2的HashEntry[]，我们添加的元素，是存入对应的Segment中的HashEntry[]中。所以ConcurrentHashMap中默认元素的长度是32个，而不是16个**
+
+
+
+> ConcurrentHashMap(JDK1.7)中如何保证获取集合中元素个数并发安全
+
+通过多次获取当前集合元素中的个数，如果存在多个线程同时添加或者删除集合中的元素，size会发生变化，所以多次获取的结果不一样，
+
+```java
+public int size() {
+    // Try a few times to get accurate count. On failure due to
+    // continuous async changes in table, resort to locking.
+    final Segment<K,V>[] segments = this.segments;
+    int size;
+    boolean overflow; // true if size overflows 32 bits
+    long sum;         // sum of modCounts
+    long last = 0L;   // previous sum
+    int retries = -1; // first iteration isn't retry
+    try {
+        for (;;) {
+            //当第4次走到这个地方时，会将整个Segment[]的所有Segment对象锁住
+            if (retries++ == RETRIES_BEFORE_LOCK) {
+                for (int j = 0; j < segments.length; ++j)
+                    ensureSegment(j).lock(); // force creation
+            }
+            sum = 0L;
+            size = 0;
+            overflow = false;
+            for (int j = 0; j < segments.length; ++j) {
+                Segment<K,V> seg = segmentAt(segments, j);
+                if (seg != null) {
+                    //累加所有Segment的操作次数
+                    sum += seg.modCount;
+                    int c = seg.count;
+                    //累加所有segment中的元素个数 size+=c
+                    if (c < 0 || (size += c) < 0)
+                        overflow = true;
+                }
+            }
+            //当这次累加值和上一次累加值一样，证明没有进行新的增删改操作，返回sum
+            //第一次last为0，如果有元素的话，这个for循环最少循环两次的
+            if (sum == last)
+                break;
+            //记录累加的值
+            last = sum;
+        }
+    } finally {
+        //如果之前有锁住，解锁
+        if (retries > RETRIES_BEFORE_LOCK) {
+            for (int j = 0; j < segments.length; ++j)
+                segmentAt(segments, j).unlock();
+        }
+    }
+    //溢出，返回int的最大值，否则返回累加的size
+    return overflow ? Integer.MAX_VALUE : size;
+}
+```
+
+
 
 
 
