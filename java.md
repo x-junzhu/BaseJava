@@ -525,8 +525,7 @@ Java类可以实现多个接口   --->弥补了Java单继承性的局限性
 3.Object类中的功能(属性、方法)就具通用性。
 
 + 属性：无
-
-+ 方法：equals() / toString() / getClass() /hashCode() / clone() / finalize() / wait() 、 notify()、notifyAll()
++ 方法(9个方法)：equals() / toString() / getClass() /hashCode() / clone() / finalize() / wait() 、 notify()、notifyAll()
 
 + Object类只声明了一个空参的构造器
 
@@ -538,7 +537,7 @@ Java类可以实现多个接口   --->弥补了Java单继承性的局限性
 
 + finalize 是java.lang.Object类中的一个方法,用来销毁内存中没有指针指向的对象,一般不显示调用,而是有Java的垃圾回收器自行调用.
 
-### 1.14 异常类型及编程中常见的异常有哪些
+### 1.14 异常类型及常见的异常
 
 ```java
 java.lang.Throwable
@@ -563,5 +562,274 @@ try catch能捕获到java.lang.Exception
 
 - java.lang.OutOfMemoryError：内存不足错误。当可用内存不足以让Java虚拟机分配给一个对象时抛出该错误。 
 - java.lang.StackOverflflowError：堆栈溢出错误。当一个应用递归调用的层次太深而导致堆栈溢出或者陷入死循环时抛出该错误。
+
+
+
+### 1.15 List、Set和Map的区别
+
+Collection接口：单列接口用来存储一个一个的对象
+
++ List接口：存储有序的、可重复的数据，如ArrayList、LinkedList和Vector
++ Set接口：存储无序的的、不可重复的数据，如HashSet、LinkedHashSet和TreeSet
+
+<img src="javaImage/collection.png" alt="avatar" style="zoom:80%;" />
+
+
+
+ArrayList、LinkedList和Vector的异同点及使用场景？
+
+相同点: 三者都是实现了List接口，存储数据的特点的相同：存储有序的、可重复的数据
+不同点:
+ArrayList:是List的主要实现类，线程不安全、效率高；底层使用Object[] elementData存储.
+源码分析(jdk1.8):ArrayList list = new ArrayList()初始化时(没有添加元素之前)底层是只是新建一个空的Object[]对象数组,当开始add数据的时候,则见一个长度为10的默认Object[]对象数组,用来保存数据,当添加到超过数据长度是,开始扩容, 默认情况是扩容为当前数组长度的1.5倍,同时将原来数组中的数据复制到当前数组. 而(jdk1.7)在初始化时候就建立默认长度的Object[]对象数组,其他的过程和jdk1.8一样.
+
+LinkedList: 底层使用双向列表存储，对于频繁的插入和删除操作，使用此类效率比ArrayList高.
+源码分析(jdk1.8):LinkedList list = new LinkedList()初始化时,在内部声明了一个内部类Node节点,维护的是一个双链表结构,每一次add操作都是将该对象封装到Node节点中.
+
+Vector:作为List接口的古老实现类；线程安全、效率低；底层使用Object[] elementData存储.
+源码分析:jdk7和jdk8中通过Vector()构造器创建对象时，底层都创建了长度为10的数组在扩容方面，默认扩容为原来的数组长度的2倍。
+
+> 谈一谈HashSet
+
+是一个存储数据的集合，**存储的数据特点：无序的、不可重复的元素**
+
++ 无序性：不等于随机性。存储的数据在底层数组中并非照数组索引的顺序添加，而是根据数据的哈希值决定的
++ 不可重复性：保证添加的元素按照equals()判断时，不能返回true.即：相同的元素只能添加一个。
+
+
+
+TreeSet:
+1.自然排序中，比较两个对象是否相同的标准为：compareTo()返回0.不再是equals().
+2.定制排序中，比较两个对象是否相同的标准为：compare()返回0.不再是equals().
+
+
+
+> 谈一谈HashMap
+
+HashMap底层源码解析(jdk1.7)
+
+​      从元素的存放位置开始谈起，HashMap底层创建一个长度为16的数组用来保存数据，每个元素添加时根据hash值确定该元素的存放位置，如果该位置没有存放元素，则添加成功，否则在该位置上形成链表，存储存在hash冲突的元素。如果冲突位置的链表太长，导致查询的效率较低，如何让存取效率更高呢？
+
+如果每个元素均存储在对应的角标位，即不存在hash冲突。
+
++ 尽可能的减少hash冲突：hash函数计算出的位置尽可能的均匀
+
+```java
+static int indexFor(int h, int length) {
+	return h & (length-1); //length是map中数组的长度
+}
+```
+
+其中**length**的长度规则：2的幂次方，为什么？
+
+```java
+public class HashMap<K,V> extends AbstractMap<K,V>
+    implements Map<K,V>, Cloneable, Serializable {
+ 	
+    /* 
+    初始化数组的容量，为什么是2^4不是其他的非2的整次幂数，如19,21等
+    因为在计算当前元素的位置i时,需要利用&运算
+    i = hash % m 但是求余的效率低，不如与运算效率高
+    我们可以将求余操作转换为与运算，如数组长度16，当前元素的hash值为11，7
+    11:0000 1011
+       0000 1111 &
+       0000 1011 = 11
+     9:0000 1001
+       0000 1111 &
+       0000 0111 = 9
+    通过与操作可以很快求出元素的位置，并且保证不同的hash值得到不同的位置i
+    如果选择的值不是2的整次幂，如13
+    11:0000 1011
+       0000 1101 &
+       0000 1001 = 9
+     9:0000 1001
+       0000 1101 &
+       0000 1001 = 9
+    很容易就产生了哈希冲突
+    */
+    static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
+    
+    // 数组的最大容量
+    static final int MAXIMUM_CAPACITY = 1 << 30;
+    
+    /*
+    默认的加载因子，为什么不是0.5或者1或者其他小于1的数字
+    假设为1,那么数组需要等到全部填满时才进行扩容，这样数组的空间利用率提高了，但是哈希碰撞的次数增加，使得链表的长度加长
+    假设为0.5，那么数组的利用率比较低，只填一半就开始扩容了，空间利用率低，但是减少了哈希碰撞
+    所以，进过学者的大量统计分析得出0.75是平衡空间利用率和哈希碰撞的最好参数
+    */
+    static final float DEFAULT_LOAD_FACTOR = 0.75f;
+    // 链表进行树化时的最小长度
+    static final int TREEIFY_THRESHOLD = 8;
+    // 树转化为链表的临界值
+    static final int UNTREEIFY_THRESHOLD = 6;
+    // 主数组上的链表转化为树时，数组的最小长度
+    static final int MIN_TREEIFY_CAPACITY = 64;
+    // 静态内部类(嵌套类)：Node节点的数据结构
+    static class Node<K,V> implements Map.Entry<K,V> {
+        final int hash;
+        final K key;
+        V value;
+        Node<K,V> next;
+    }
+    // 定义主数组
+    transient Node<K,V>[] table;
+    // 已经修改的元素个数
+    transient int modCount;
+    // table中已经放入元素的个数
+    transient int size;
+    // table数组的大小
+    int threshold;
+    // 加载因子
+    final float loadFactor;
+    
+}
+```
+
++ 确实产生了hash冲突：扩容+数据结构(提高查询和插入效率)
+
+什么时候扩容？
+
+JDK1.7 
+
+判断当前数据容量是否达到阈值(0.75*数组长度)，同时判断当前添加元素是否产生hash冲突
+
+JDK1.8
+
+先添加元素，再判断是否达到阈值
+
+ConcurrentHashMap源码解析(JDK1.7)
+
+无参构造
+
+```java
+//空参构造
+public ConcurrentHashMap() {
+    //调用本类的带参构造
+    //DEFAULT_INITIAL_CAPACITY = 16
+    //DEFAULT_LOAD_FACTOR = 0.75f
+    //int DEFAULT_CONCURRENCY_LEVEL = 16
+    this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR, DEFAULT_CONCURRENCY_LEVEL);
+}
+```
+
+HashMap(JDK1.8)在扩容的时候，会维护两个结构，如果当前桶上是链表，可以直接迁移数据，如果当前桶上是红黑树，则会迁移红黑树上的双向链表(因为直接迁移红黑树非常的复杂)
+
+```java
+/* 
+扩容时，元素的hash值存在两种情况
+情况1.保持不变，在原来的位置上
+情况2.发生改变，在原位置的基础上，加上扩容的长度，如原来数组长度是8，扩容为16，则加上的数为8
+JDK1.8扩容时的操作：
+通过高、低位两个指针整体迁移数据
+loHead 记录情况1的首位，loTail记录情况1的末位
+hiHead 记录情况2的首位，loTail记录情况2的末位
+*/
+Node<K,V> loHead = null, loTail = null;
+Node<K,V> hiHead = null, hiTail = null;
+Node<K,V> next;
+    do {
+        next = e.next;
+        if ((e.hash & oldCap) == 0) {// if条件成立，表示情况1
+            if (loTail == null)
+                loHead = e;
+            else
+                loTail.next = e;
+            loTail = e;
+        }
+        else {// if条件不成立，表示情况2
+            if (hiTail == null)
+                hiHead = e;
+            else
+                hiTail.next = e;
+            hiTail = e;
+        }
+    } while ((e = next) != null);
+    if (loTail != null) {
+        loTail.next = null;
+        newTab[j] = loHead;
+    }
+	if (hiTail != null) {
+    hiTail.next = null;
+    newTab[j + oldCap] = hiHead;
+	}
+}
+```
+
+
+
+带有三个参数的构造函数：一些非核心逻辑的代码已经省略
+
+```java
+//initialCapacity 定义ConcurrentHashMap存放元素的容量
+//concurrencyLevel 定义ConcurrentHashMap中Segment[]的大小
+public ConcurrentHashMap(int initialCapacity,
+                         float loadFactor, int concurrencyLevel) {
+   
+    int sshift = 0;
+    int ssize = 1;
+    //计算Segment[]的大小，保证是2的幂次方数
+    while (ssize < concurrencyLevel) {
+        ++sshift;
+        ssize <<= 1;
+    }
+    //这两个值用于后面计算Segment[]的角标
+    this.segmentShift = 32 - sshift;
+    this.segmentMask = ssize - 1;
+    
+    //计算每个Segment中存储元素的个数
+    int c = initialCapacity / ssize;
+    if (c * ssize < initialCapacity)
+        ++c;
+    //最小Segment中存储元素的个数为2
+    int cap = MIN_SEGMENT_TABLE_CAPACITY;
+    //矫正每个Segment中存储元素的个数，保证是2的幂次方，最小为2
+    while (cap < c)
+        cap <<= 1;
+    //创建一个Segment对象，作为其他Segment对象的模板
+    Segment<K,V> s0 =
+        new Segment<K,V>(loadFactor, (int)(cap * loadFactor),
+                         (HashEntry<K,V>[])new HashEntry[cap]);
+    Segment<K,V>[] ss = (Segment<K,V>[])new Segment[ssize];
+    //利用Unsafe类，将创建的Segment对象存入0角标位置
+    UNSAFE.putOrderedObject(ss, SBASE, s0); // ordered write of segments[0]
+    this.segments = ss;
+}
+```
+
+**综上：ConcurrentHashMap中保存了一个默认长度为16的Segment[]，每个Segment元素中保存了一个默认长度为2的HashEntry[]，我们添加的元素，是存入对应的Segment中的HashEntry[]中。所以ConcurrentHashMap中默认元素的长度是32个，而不是16个**
+
+HashMap的add添加元素过程
+
+```java
+从JDK 1.7开始说起:
+HashMap map = new HashMap()开始在底层创建一个长度为16的Entry[] 数组.在此之前已经
+put(key, value)多次,直到本次map.put(key1, value1),首先通过所在类的hashCode()计算哈希值，
+即该条数据在Entry[]数组中位置：
+  如果该哈希值对应Entry[]数组的位置为空，则插入成功 --> 情况1
+  如果该哈希值对应Entry[]数组的位置不为空(可能存在一条数据或者一个链表),开始对比
+  (key1, value1)的哈希值与该位置上所有元素的哈希值:
+      如果(key1, value1)与该位置上所有元素的哈希值均不相同，则插入成功 --> 情况2
+      如果(key1, value1)与该位置上的某条数据(key2, value2)的哈希值相等，则开始比较key1.value.equals(key2.value):
+          如果equals返回false，则添加成功 --> 情况3
+          如果equals返回true,则用value2替换value1
+说明: 情况2和情况3(key1, value1)都是采用链表方式存储.
+补充JDK 1.8:
+1.new HashMap()的时候不会一开始就创建一个长度为16的数组，只有在第一次put()操作后，才创建数组。
+2.JDK 1.8底层使用的数组是Node[],而非Entry[]
+3.JDK 1.7底层使用的是数组+链表, JDK 1.8使用的是数组+链表+红黑树
+4.JDK 1.7的链表采用的是头插法，JDK 1.8的链表采用的是尾插法。
+5.JDK 1.8中当链表长度大于8，并且Node[]数组长度大于64时，链表转换成红黑树。
+在不断添加的过程中会涉及到扩容问题，当数组中位置使用超过临界值且下一个存储的位置不空的时候，
+将数组长度扩容为原来的两倍，并且把原数组复制到新的数组中。
+HashMap底层典型属性的属性的说明：
+DEFAULT_INITIAL_CAPACITY : HashMap的默认容量，16
+DEFAULT_LOAD_FACTOR：HashMap的默认加载因子：0.75
+threshold：扩容的临界值，=容量*填充因子：16 * 0.75 => 12
+TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树:8
+MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量:64
+```
+
+
 
 ## 2.Java高级编程知识
