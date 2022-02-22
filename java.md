@@ -864,7 +864,7 @@ static final class HashEntry<K,V> {
 
 >  ConcurrentHashMap(JDK1.7)如何保证多线程环境下添加安全？
 
-**ConcurrentHashMap的put()**方法
+**ConcurrentHashMap的put()方法**
 
 ```java
 public V put(K key, V value) {
@@ -1152,7 +1152,7 @@ public ConcurrentHashMap(int initialCapacity,
 
 > ConcurrentHashMap(JDK1.7)中如何保证获取集合中元素个数并发安全
 
-通过多次获取当前集合元素中的个数，如果存在多个线程同时添加或者删除集合中的元素，size会发生变化，所以多次获取的结果不一样，
+通过多次获取当前集合元素中的个数，如果存在多个线程同时添加或者删除集合中的元素，size会发生变化，所以多次获取的结果不一样，如果前后两次获取的size大小一样，则返回当前的size
 
 ```java
 public int size() {
@@ -1206,6 +1206,86 @@ public int size() {
 
 
 
+**ConcurrentHashMap源码解析(JDK1.8)**
 
+从构造函数开始谈起，JDK1.8在初始化对象时，均没有对初始数组大小进行初始化，**数组的初始化在第一次添加元素的时候进行的。**
+
+```java
+//没有维护任何变量的操作，如果调用该方法，数组长度默认是16
+public ConcurrentHashMap() {
+}
+```
+
+
+
+```java
+//传递进来一个初始容量，ConcurrentHashMap会基于这个值计算一个比这个值大的2的幂次方数作为初始容量
+public ConcurrentHashMap(int initialCapacity) {
+    if (initialCapacity < 0)
+        throw new IllegalArgumentException();
+    int cap = ((initialCapacity >= (MAXIMUM_CAPACITY >>> 1)) ?
+               MAXIMUM_CAPACITY :
+               tableSizeFor(initialCapacity + (initialCapacity >>> 1) + 1));
+    /*
+    上一行代码中，会将传递过来的initialCapacity变成大于initialCapacity最小的2的整数次幂
+    如initialCapacity=15，则15+7+1=23，最后数组的大小为大于23的最小2的整数次幂，即32
+    */
+    this.sizeCtl = cap;
+}
+```
+
+
+
+**重要！重要！重要！`sizeCtl`含义解释**
+
+注意：以上这些构造方法中，都涉及到一个变量`sizeCtl`，这个变量是一个非常重要的变量，而且具有非常丰富的含义，它的值不同，对应的含义也不一样，这里我们先对这个变量不同的值的含义做一下说明，后续源码分析过程中，进一步解释
+
+`sizeCtl`为0，代表数组未初始化， 且数组的初始容量为16
+
+`sizeCtl`为正数，如果数组未初始化，那么其记录的是数组的初始容量，如果数组已经初始化，那么其记录的是数组的扩容阈值
+
+`sizeCtl`为-1，表示数组正在进行初始化
+
+`sizeCtl`小于0，并且不是-1，表示数组正在扩容， -(1+n)，表示此时有n个线程正在共同完成数组的扩容操作
+
+
+
+> 初始化过程如何保证多线程并发安全？
+
+**ConcurrentHashMap(JDK1.8)的initTable()方法**
+
+```java
+private final Node<K,V>[] initTable() {
+    Node<K,V>[] tab; int sc;
+    //cas+自旋，保证线程安全，对数组进行初始化操作
+    while ((tab = table) == null || tab.length == 0) {
+        //如果sizeCtl的值（-1）小于0，说明此时正在初始化， 让出cpu
+        if ((sc = sizeCtl) < 0)
+            Thread.yield(); // lost initialization race; just spin
+        //cas修改sizeCtl的值为-1，修改成功，进行数组初始化，失败，继续自旋
+        else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
+            try {
+                if ((tab = table) == null || tab.length == 0) {
+                    //sizeCtl为0，取默认长度16，否则去sizeCtl的值
+                    int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
+                    @SuppressWarnings("unchecked")
+                    //基于初始长度，构建数组对象
+                    Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
+                    table = tab = nt;
+                    //计算扩容阈值，并赋值给sc
+                    sc = n - (n >>> 2);
+                }
+            } finally {
+                //将扩容阈值，赋值给sizeCtl
+                sizeCtl = sc;
+            }
+            break;
+        }
+    }
+    return tab;
+}
+```
+
+**总结：sizeCtl为-1时表示正在初始化数组大小。如果第9行修改sizeCtl失败，则会继续进入while循环，进行比较和修改sizeCtl，即通过CAS+自旋的方式来确保多线程下并发安全。**
 
 ## 2.Java高级编程知识
