@@ -1763,6 +1763,380 @@ private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
 
 
 
+### 1.16 创建线程的方法及区别
+
+**从操作系统层面的线程状态(5种)**
+
+<img src="javaImage/system_thread_state.png" alt="avatar" style="zoom:100%;" />
+
++ 【初始状态】仅是在语言层面创建了线程对象，还未与操作系统线程关联
++ 【可运行状态】（就绪状态）指该线程已经被创建（与操作系统线程关联），可以由 CPU 调度执行
++ 【运行状态】指获取了 CPU 时间片运行中的状态
+
+​	当 CPU 时间片用完，会从【运行状态】转换至【可运行状态】，会导致线程的上下文切换
+
++ 【阻塞状态】
+
+ 	1. 如果调用了阻塞 API，如 BIO 读写文件，这时该线程实际不会用到 CPU，会导致线程上下文切换，进入【阻塞状态】
+ 	2. 等 BIO 操作完毕，会由操作系统唤醒阻塞的线程，转换至【可运行状态】
+	1. 与【可运行状态】的区别是，对【阻塞状态】的线程来说只要它们一直不唤醒，调度器就一直不会考虑
+	调度它们
+
++ 【终止状态】表示线程已经执行完毕，生命周期已经结束，不会再转换为其它状态
+
+线程的六种状态
+
+```java
+public enum State {
+        /**新建
+         * Thread state for a thread which has not yet started.
+         */
+        NEW,
+
+        /**运行：指Java程序运行在JVM上，但是可能还在等在处理器去执行
+         * Thread state for a runnable thread.  A thread in the runnable
+         * state is executing in the Java virtual machine but it may
+         * be waiting for other resources from the operating system
+         * such as processor.
+         */
+        RUNNABLE,
+
+        /**阻塞
+         * Thread state for a thread blocked waiting for a monitor lock.
+         * A thread in the blocked state is waiting for a monitor lock
+         * to enter a synchronized block/method or
+         * reenter a synchronized block/method after calling
+         * {@link Object#wait() Object.wait}.
+         */
+        BLOCKED,
+
+        /**阻塞等待
+         * Thread state for a waiting thread.
+         * A thread is in the waiting state due to calling one of the
+         * following methods:
+         * <ul>
+         *   <li>{@link Object#wait() Object.wait} with no timeout</li>
+         *   <li>{@link #join() Thread.join} with no timeout</li>
+         *   <li>{@link LockSupport#park() LockSupport.park}</li>
+         * </ul>
+         *
+         * <p>A thread in the waiting state is waiting for another thread to
+         * perform a particular action.
+         *
+         * For example, a thread that has called <tt>Object.wait()</tt>
+         * on an object is waiting for another thread to call
+         * <tt>Object.notify()</tt> or <tt>Object.notifyAll()</tt> on
+         * that object. A thread that has called <tt>Thread.join()</tt>
+         * is waiting for a specified thread to terminate.
+         */
+        WAITING,
+
+        /**超时等待
+         * Thread state for a waiting thread with a specified waiting time.
+         * A thread is in the timed waiting state due to calling one of
+         * the following methods with a specified positive waiting time:
+         * <ul>
+         *   <li>{@link #sleep Thread.sleep}</li>
+         *   <li>{@link Object#wait(long) Object.wait} with timeout</li>
+         *   <li>{@link #join(long) Thread.join} with timeout</li>
+         *   <li>{@link LockSupport#parkNanos LockSupport.parkNanos}</li>
+         *   <li>{@link LockSupport#parkUntil LockSupport.parkUntil}</li>
+         * </ul>
+         */
+        TIMED_WAITING,
+
+        /**终止
+         * Thread state for a terminated thread.
+         * The thread has completed execution.
+         */
+        TERMINATED;
+}
+```
+
+
+
+<img src="javaImage/java_thread_state.png" alt="avatar" style="zoom:100%;" />
+
++ `NEW` 线程刚被创建，但是还没有调用 `start()` 方法
++ `RUNNABLE` 当调用了 `start()` 方法之后，注意，Java API 层面的 RUNNABLE 状态涵盖了 操作系统 层面的
+  【可运行状态】、【运行状态】和【阻塞状态】（由于 BIO 导致的线程阻塞，在 Java 里无法区分，仍然认为
+  是可运行）
++ `BLOCKED` ， `WAITING` ， `TIMED_WAITING` 都是 Java API 层面对【阻塞状态】的细分
++ `TERMINATED` 当线程代码运行结束
+
+
+
+**线程状态之间的转换**
+
+假设有线程 Thread t
+
+> 情况1：`NEW -> RUNNABLE`
+
+当调用 `t.start()`方法时，由 `NEW --> RUNNABLE`
+
+> 情况 2：`RUNNABLE <--> WAITING`
+
+t 线程用 synchronized(obj) 获取了对象锁后
+
++ 调用 `obj.wait()` 方法时，t 线程从 `RUNNABLE --> WAITING`
++ 调用 `obj.notify()` ， `obj.notifyAll()` ， `t.interrupt()` 时
+
+1. 竞争锁成功，t 线程从 `WAITING --> RUNNABLE`
+2. 竞争锁失败，t 线程从 `WAITING --> BLOCKED`
+
++ 当前线程调用 `t.join() `方法时，当前线程从 `RUNNABLE --> WAITING`：注意是当前线程在t 线程对象的监视器上等待
+
++ t 线程运行结束，或调用了当前线程的 `interrupt() `时，当前线程从 `WAITING --> RUNNABLE`
+
+> 情况3：`RUNNABLE <--> TIMED_WAITING`
+
++ 当前线程调用 `Thread.sleep(long n)` ，当前线程从 `RUNNABLE --> TIMED_WAITING`
++ 当前线程等待时间超过了 n 毫秒，当前线程从 `TIMED_WAITING --> RUNNABLE`
+
+> 情况4：`RUNNABLE <--> BLOCKED`
+
++ t 线程用` synchronized(obj) `获取了对象锁时如果竞争失败，从` RUNNABLE --> BLOCKED`
++ 持 obj 锁线程的同步代码块执行完毕，会唤醒该对象上所有 BLOCKED 的线程重新竞争，如果其中 t 线程竞争
+  成功，从 `BLOCKED --> RUNNABLE` ，其它失败的线程仍然 BLOCKED
+
+> 情况5：`RUNNABLE <--> TERMINATED`
+
+当前线程所有代码运行完毕，进入`TERMINATED`
+
+
+
+**创建线程的四种方法**
+
+方式一：继承Thread类的方式
+
+>  使用start()和run()方法启动线程的区别？
+
++ 使用run()方法启动，该方法仍然是由主线程执行，不会重新开辟一个新线程执行
+
++ 使用start()方法启动，会重新开辟一个新的线程执行
+
+方式二：实现Runnable接口的方式
+
+方式三：实现Callable接口。 --- JDK 5.0新增
+
+如何理解实现Callable接口的方式创建多线程比实现Runnable接口创建多线程方式强大？
+
+1. call()可以返回值的。
+2. call()可以抛出异常，被外面的操作捕获，获取异常的信息
+3. Callable是支持泛型的
+
+方式四：使用线程池
+
+好处：
+
++ 提高响应速度（减少了创建新线程的时间） 
++ 降低资源消耗（重复利用线程池中线程，不需要每次都创建） 
++ 便于线程管理 corePoolSize：核心池的大小 maximumPoolSize：最大线程数 keepAliveTime：线程没任务时最多保持多长时间后会终止
+
+**线程池: 三大方法、七个参数、四种拒绝策略**
+
+> 创建线程池的三大方法
+
+```java
+public static void main(String[] args) {
+        // 1.创建单个线程
+//        ExecutorService threadPool = Executors.newSingleThreadExecutor();
+        // 2.创建固定大小的线程池
+//        ExecutorService threadPool = Executors.newFixedThreadPool(5);
+        // 3.创建一个可伸缩的线程池
+        ExecutorService threadPool = Executors.newCachedThreadPool();
+
+        try {
+            for (int i = 1; i <= 1001; i++){
+                // 使用线程池创建线程
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + " is ok");
+                });
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            // 线程池使用完, 需要关闭
+            threadPool.shutdown();
+        }
+    }
+```
+
+**注意：**
+
+​       线程池不允许使用Executors去创建，而是通过ThreadPoolExecutor的方式，这样的处理方式让写的同学更加明确线程池的运行规则，规避资源耗尽的风险。
+
+说明：Executors返回的线程池对象的弊端如下：
+
++ FixedThreadPool和SingleThreadPool：允许的请求队列长度为Integer.MAX_VALUE，可能会堆积大量的请求，从而导致OOM。
++ CachedThreadPool：允许的创建线程数量为Integer.MAX_VALUE，可能会创建大量的线程，从而导致OOM。
+
+**日常工作中创建线程池过程都要使用ThreadPoolExecutor**
+
+**ThreadPoolExecutor**
+
+> ThreadPoolExecutor的七大参数
+
+```java
+public ThreadPoolExecutor(int corePoolSize,//核心线程池大小
+                              int maximumPoolSize,//最大核心线程池大小
+                              long keepAliveTime,
+                              // 超时后没有调用就是释放的时间
+                              TimeUnit unit,// 超时单位
+                              BlockingQueue<Runnable> workQueue,// 阻塞队列
+                              ThreadFactory threadFactory,// 创建线程工厂, 一般不用动
+                              RejectedExecutionHandler handler// 拒绝策略) {
+        if (corePoolSize < 0 ||
+            maximumPoolSize <= 0 ||
+            maximumPoolSize < corePoolSize ||
+            keepAliveTime < 0)
+            throw new IllegalArgumentException();
+        if (workQueue == null || threadFactory == null || handler == null)
+            throw new NullPointerException();
+        this.corePoolSize = corePoolSize;
+        this.maximumPoolSize = maximumPoolSize;
+        this.workQueue = workQueue;
+        this.keepAliveTime = unit.toNanos(keepAliveTime);
+        this.threadFactory = threadFactory;
+        this.handler = handler;
+    }
+```
+
+![avatar](javaImage/threadPool.png)
+
+> 四种拒绝策略
+
+```java
+@Test
+    public void testThreadPool(){
+        /*四大策略
+        1. new ThreadPoolExecutor.AbortPolicy(): 银行满了, 还有人继续进来, 不处理此人, 抛出异常
+        2. new ThreadPoolExecutor.CallerRunsPolicy(): 哪里来的去哪里(main 线程执行)
+        3. new ThreadPoolExecutor.DiscardPolicy(): 队列满了, 丢掉任务, 不会抛出异常
+        4. new ThreadPoolExecutor.DiscardOldestPolicy(): 队列满了, 尝试和最早的线程竞争, 不会抛出异常
+         */
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(
+                2,
+                5,
+                3,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(3),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.DiscardOldestPolicy());// 队列满了, 尝试和最早的线程竞争, 不会抛出异常
+        try {
+            /*
+            最大承载: max + queue
+            超过最大承载(拒绝策略为AbortPolicy()): java.util.concurrent.RejectedExecutionException
+             */
+            for (int i = 1; i <= 9; i++){
+                // 使用线程池创建线程
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + " is ok");
+                });
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            // 线程池使用完, 需要关闭
+            threadPool.shutdown();
+        }
+    }
+```
+
+**如何定义最大线程池大小**
+
++ CPU密集型: 计算机是几核的就定义为几个线程, 可以保证CPU效率最高.Runtime.getRuntime().availableProcessors();
+
++ IO密集型: 判断程序中十分占用IO的程序数, 只要最大线程数大于IO线程数即可
+
+
+
+### 1.17 sychronized和volatile
+
+Java对象的内存布局
+
+<img src="javaImage/object_info.jpg" alt="avatar" style="zoom:80%;" />
+
++ 对象头Hearder：其主要包括两部分数据：Mark Word、Class对象指针。特别地对于数组对象而言，其还包括了数组长度数据。在64位的HotSpot虚拟机下，Mark Word占8个字节，**其记录了Hash Code、GC信息、锁信息等相关信息**；而Class对象指针则指向该实例的Class对象，在开启指针压缩的情况下占用4个字节，否则占8个字节；如果其是一个数组对象，则还需要4个字节用于记录数组长度信息。这里列出64位HotSpot虚拟机Mark Word的具体含义，以供参考。需要注意的是在下图的Mark Word中，左侧为高字节，右侧为低字节
+
+<img src="javaImage/object_header.jpg" alt="avatar" style="zoom:80%;" />
+
++ 实例数据：用于存放该对象的实例数据
++ 内存填充：64位的HotSpot要求Java对象地址按8字节对齐，即每个对象所占内存的字节数必须是8字节的整数倍。
+
+
+
+**sychronized是可重入锁**
+
+重入次数必须记录，因为要知道解几次锁
+
+偏向锁记录在线程栈中，记录在Lock Record(LR + 1)
+
++ 可重入锁：广义上的可重入锁指的是可重复可递归调用的锁，在外层使用锁之后，在内层仍然可以使用，并且不发生死锁（前提得是同一个对象或者class），这样的锁就叫做可重入锁。   ReentrantLock   和   synchronized   都是可重入锁
+
+```java
+synchronized void setA() throws Exception{
+   Thread.sleep(1000);
+   setB();
+}
+synchronized void setB() throws Exception{
+   Thread.sleep(1000);
+}
+/*
+上面的代码就是一个可重入锁的一个特点，如果不是可重入锁的话，setB可能不会被当前线程执行，可能造成死锁。
+*/
+```
+
++ 不可重入锁，与可重入锁相反，不可递归调用，递归调用就发生死锁。看到一个经典的讲解，使用自旋锁来模拟一个不可重入锁
+
+**锁升级过程**
+
+<img src="javaImage/juc_lock_1.png" alt="avatar" style="zoom:100%;" />
+
+
+
+用户空间锁 vs 重量级锁
+
+偏向锁 自旋锁都是用户空间完成的
+
+重量级锁需要向内核申请的
+
+**偏向锁是线程的id放入对象的头信息中**
+
+> 为什么有自旋锁还要重量级锁？
+
+自旋**(自适应自旋)**是消耗CPU资源的，如果锁的时间长或者参与自旋的线程较多，CPU资源会被大量消耗
+
+重要级锁是管理这些参与竞争的线程，ObjectMonitor对象里包含WaitSet队列管理这些竞争的线程，减少自旋消耗CPU资源
+
+```C++
+ObjectMonitor{
+    _header  = null; //对象头，锁的状态
+    _count   =0; // 记录该线程获取锁的次数
+    _waiters =0; // 当前有多少线程处于wait的状态
+    _recursions = 0; // 锁的重入次数
+    _object = null;
+    _owner  = null; // 指向持有ObjectMonitor对象的线程
+    _WatiSet = null; // 存放处于wait状态的线程
+    ...
+    _EntryList = null; // 存放处于block锁阻塞状态的线程队列
+}
+```
+
+
+
+**偏向锁默认是打开的，只是它会延迟4秒打开**
+
+> 偏向锁是否一定比自旋锁效率高？
+
+不一定，在明确知道当前资源存在会存在多个线程竞争该资源，偏向锁会涉及到锁撤销的过程，这时直接使用轻量级锁更好
+
+2)为什么会延迟4秒
+
+因为JVM启动时，会加载其他类的信息，在加载其他类的信息时也包括对它上锁的过程，等待其他类的上锁完成后，在考虑当前用户的上锁情况，如果我们明确知道当前线程会有多个线程竞争当前资源，可以不用考虑加偏向锁直接升级到轻量级锁
+
+
+
 
 
 ## 2.Java高级编程知识
