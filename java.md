@@ -1784,7 +1784,9 @@ private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
 
 + 【终止状态】表示线程已经执行完毕，生命周期已经结束，不会再转换为其它状态
 
-线程的六种状态
+
+
+**Java层面线程的六种状态**
 
 ```java
 public enum State {
@@ -1899,7 +1901,7 @@ t 线程用 synchronized(obj) 获取了对象锁后
 + 持 obj 锁线程的同步代码块执行完毕，会唤醒该对象上所有 BLOCKED 的线程重新竞争，如果其中 t 线程竞争
   成功，从 `BLOCKED --> RUNNABLE` ，其它失败的线程仍然 BLOCKED
 
-> 情况5：`RUNNABLE <--> TERMINATED`
+> 情况5：`RUNNABLE --> TERMINATED`
 
 当前线程所有代码运行完毕，进入`TERMINATED`
 
@@ -1971,9 +1973,9 @@ public static void main(String[] args) {
 + FixedThreadPool和SingleThreadPool：允许的请求队列长度为Integer.MAX_VALUE，可能会堆积大量的请求，从而导致OOM。
 + CachedThreadPool：允许的创建线程数量为Integer.MAX_VALUE，可能会创建大量的线程，从而导致OOM。
 
-**日常工作中创建线程池过程都要使用ThreadPoolExecutor**
 
-**ThreadPoolExecutor**
+
+**日常工作中创建线程池过程都要使用ThreadPoolExecutor**
 
 > ThreadPoolExecutor的七大参数
 
@@ -2053,11 +2055,23 @@ public ThreadPoolExecutor(int corePoolSize,//核心线程池大小
 
 ### 1.17 sychronized和volatile
 
+> 关于一些锁的概念
+
+悲观锁和乐观锁
+
++ 悲观锁：
+
+  总是假设最坏的情况，每次去拿数据的时候都认为别人会修改，所以每次在拿数据的时候都会上锁，这样别人想拿这个数据就会阻塞直到它拿到锁（**共享资源每次只给一个线程使用，其它线程阻塞，用完后再把资源转让给其它线程**  )，如synchronized
+
++ 乐观锁：
+
+  总是假设最好的情况，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，可以使用版本号机制和CAS算法实现。    **乐观锁适用于多读的应用类型，这样可以提高吞吐量**    如：使用CAS+自旋实现乐观锁
+
 Java对象的内存布局
 
 <img src="javaImage/object_info.jpg" alt="avatar" style="zoom:80%;" />
 
-+ 对象头Hearder：其主要包括两部分数据：Mark Word、Class对象指针。特别地对于数组对象而言，其还包括了数组长度数据。在64位的HotSpot虚拟机下，Mark Word占8个字节，**其记录了Hash Code、GC信息、锁信息等相关信息**；而Class对象指针则指向该实例的Class对象，在开启指针压缩的情况下占用4个字节，否则占8个字节；如果其是一个数组对象，则还需要4个字节用于记录数组长度信息。这里列出64位HotSpot虚拟机Mark Word的具体含义，以供参考。需要注意的是在下图的Mark Word中，左侧为高字节，右侧为低字节
++ 对象头Hearder：其主要包括两部分数据：Mark Word、Class对象指针。特别地对于数组对象而言，其还包括了数组长度数据。在64位的HotSpot虚拟机下，Mark Word占**8个字节**，**其记录了Hash Code、GC信息、锁信息等相关信息**；而Class对象指针则指向该实例的Class对象，在开启指针压缩的情况下占用4个字节，否则占8个字节；如果其是一个数组对象，则还需要4个字节用于记录数组长度信息。这里列出64位HotSpot虚拟机Mark Word的具体含义，以供参考。需要注意的是在下图的Mark Word中，左侧为高字节，右侧为低字节
 
 <img src="javaImage/object_header.jpg" alt="avatar" style="zoom:80%;" />
 
@@ -2072,7 +2086,7 @@ Java对象的内存布局
 
 偏向锁记录在线程栈中，记录在Lock Record(LR + 1)
 
-+ 可重入锁：广义上的可重入锁指的是可重复可递归调用的锁，在外层使用锁之后，在内层仍然可以使用，并且不发生死锁（前提得是同一个对象或者class），这样的锁就叫做可重入锁。   ReentrantLock   和   synchronized   都是可重入锁
++ 可重入锁：广义上的可重入锁指的是可重复可递归调用的锁，在外层使用锁之后，在内层仍然可以使用，并且不发生死锁（前提得是同一个对象或者class），这样的锁就叫做可重入锁。ReentrantLock和synchronized   都是可重入锁
 
 ```java
 synchronized void setA() throws Exception{
@@ -2087,11 +2101,27 @@ synchronized void setB() throws Exception{
 */
 ```
 
-+ 不可重入锁，与可重入锁相反，不可递归调用，递归调用就发生死锁。看到一个经典的讲解，使用自旋锁来模拟一个不可重入锁
++ 不可重入锁，与可重入锁相反，不可递归调用，递归调用就发生死锁。
 
 **锁升级过程**
 
 <img src="javaImage/juc_lock_1.png" alt="avatar" style="zoom:100%;" />
+
+>  synchronized的锁流程
+
+1. 检测Mark Word里面是不是当前线程的ID，如果是，表示当前线程处于偏向锁 
+
+2. 如果不是，则使用CAS将当前线程的ID替换Mard Word，如果成功则表示当前线程获得偏向锁，置偏向标志位1 
+
+3. 如果失败，则说明发生竞争，撤销偏向锁，进而升级为轻量级锁。 
+
+4. 当前线程使用CAS将对象头的Mark Word替换为锁记录指针，如果成功，当前线程获得锁 
+
+5. 如果失败，表示其他线程竞争锁，当前线程便尝试使用自旋来获取锁。 
+
+6. 如果自旋成功则依然处于轻量级状态。 
+
+7. 如果自旋失败，则升级为重量级锁。
 
 
 
@@ -2136,6 +2166,66 @@ ObjectMonitor{
 因为JVM启动时，会加载其他类的信息，在加载其他类的信息时也包括对它上锁的过程，等待其他类的上锁完成后，在考虑当前用户的上锁情况，如果我们明确知道当前线程会有多个线程竞争当前资源，可以不用考虑加偏向锁直接升级到轻量级锁
 
 
+
+**CAS(compare and swap)的缺点**
+
++ ABA问题：所谓的ABA问题，指的就是一个线程在操作数据的时候，有别的线程对数据进行了一系列操作，但是在该线程重新读取该数据的时候，被修改过的数据却和该线程一开始读取的数据一致，该线程不会知道该数据已经被修改过了，然后CAS操作就被判断是成功了。**可以通过添加版本号，解决ABA问题。**
++ 高竞争下的开销问题：在并发冲突的概率较大的高竞争场景下，如果CAS操作一直失败，就会一直重试，造成CPU开销大的问题。针对这个问题，一个简单的思路是引入退出机制，如果重试次数超过一定阈值，就强制失败退出。当然了，最好是避免在高竞争的场景下使用乐观锁。
++ 自身的局限性：CAS的功能是比较受限的，比如CAS只能保证单个变量（或者说单个内存值）操作的原子性。这就意味着原子性不一定能保证线程安全，当涉及到多个变量（或者说多个内存值），CAS也是无能为力。除此之外，CAS的实现需要硬件层面处理器的支持，在Java中普通的用户是无法直接使用的，只有借助atomic包下的原子类才能使用，灵活性有限。
+
+
+
+> volatile
+
+volatile是Java提供的**轻量级同步机制**
+
+1. 保证可见性
+2. 禁止指令重排
+3. 不保证原子性
+
+volatile 的底层实现原理是内存屏障，Memory Barrier（Memory Fence）
+
++ 对 volatile 变量的写指令后会加入写屏障
++ 对 volatile 变量的读指令前会加入读屏障
+
+在JVM层面包含四种屏障：
+
++ LoadLoad
++ StoreStore
++ LoadStore
++ StoreLoad
+
+<img src="javaImage/volatile_jsr.png" alt="avatar" style="zoom:100%;" />
+
+如何保证可见性？
+
++ 写屏障（sfence）保证在该屏障之前的，对共享变量的改动，都同步到主存当中
+
++ 读屏障（lfence）保证在该屏障之后，对共享变量的读取，加载的是主存中最新数据
+
+如何保证有序性？
+
++ 写屏障会确保指令重排序时，不会将写屏障之前的代码排在写屏障之后
++ 读屏障会确保指令重排序时，不会将读屏障之后的代码排在读屏障之前
+
+
+
+但是，volatile不能解决指令交错
+
++ 写屏障仅仅是保证之后的读能够读到最新的结果，但不能保证读跑到它前面去
++ 而有序性的保证也只是保证了本线程内相关代码不被重排序，无法保证线程间的指令交错
+
+### 1.18 原子类Atomic
+
+在多线程不加锁的情况下，仍然保持线程安全，原子更新同步资源，不出现中断
+
+主要基于CAS+volatile+unsafe
+
+CAS：比较并交换
+
+unsafe：操作C/C++库，发送指令操作硬件资源，直接操作内存，原子操作
+
+volatile：可见性、禁止指令重排
 
 
 
