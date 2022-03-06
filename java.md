@@ -2329,6 +2329,93 @@ static class Entry extends WeakReference<ThreadLocal<?>> {
 
 如果我们使用线程池，每次使用完线程都会放回池中，可能存在上一次未使用完的key-value没有被清除，这就可能存在数据错乱问题，所以需要通过remove方法清理，ThreadLocalMap集合中的key-value元素。
 
+###  1.20 反射
+
+Reflection(反射)是被视为动态语言的关键，反射机制允许程序在执行期借助于Reflection API取得任何类的内部信息，并能直接操作任意对象的内部属性及方法。
+
+>  Class类
+
++ 类的加载过程：
+  程序经过javac.exe命令以后，会生成一个或多个字节码文件(.class结尾)。接着我们使用java.exe命令对某个字节码文件进行解释运行。相当于将某个字节码文件加载到内存中。此过程就称为类的加载。加载到内存中的类，我们就称为运行时类，此运行时类，就作为Class的一个实例。
++ 换句话说，Class的实例就对应着一个运行时类。
++ 加载到内存中的运行时类，会缓存一定的时间。在此时间之内，我们可以通过不同的方式
+  来获取此运行时类。
+
+```java
+		//方式一：调用运行时类的属性：.class
+        Class clazz1 = Person.class;
+        System.out.println(clazz1);
+        //方式二：通过运行时类的对象,调用getClass()
+        Person p1 = new Person();
+        Class clazz2 = p1.getClass();
+        System.out.println(clazz2);
+
+        //方式三：调用Class的静态方法：forName(String classPath)
+        Class clazz3 = Class.forName("com.atguigu.java.Person");
+//        clazz3 = Class.forName("java.lang.String");
+        System.out.println(clazz3);
+
+        System.out.println(clazz1 == clazz2);
+        System.out.println(clazz1 == clazz3);
+
+        //方式四：使用类的加载器：ClassLoader  (了解)
+        ClassLoader classLoader = ReflectionTest.class.getClassLoader();
+        Class clazz4 = classLoader.loadClass("com.atguigu.java.Person");
+        System.out.println(clazz4);
+
+        System.out.println(clazz1 == clazz4);
+```
+
+
+
+> 反射的应用
+
++ 创建运行时类的对象：newInstance()
++ 获取运行时类的完整结构
++ 调用运行时类的指定结构
+
+```java
+	@Test
+    public void testMethod() throws Exception {
+
+        Class clazz = Person.class;
+
+        //创建运行时类的对象
+        Person p = (Person) clazz.newInstance();
+
+        /*
+        1.获取指定的某个方法
+        getDeclaredMethod():参数1 ：指明获取的方法的名称  参数2：指明获取的方法的形参列表
+         */
+        Method show = clazz.getDeclaredMethod("show", String.class);
+        //2.保证当前方法是可访问的
+        show.setAccessible(true);
+
+        /*
+        3. 调用方法的invoke():参数1：方法的调用者  参数2：给方法形参赋值的实参
+        invoke()的返回值即为对应类中调用的方法的返回值。
+         */
+        Object returnValue = show.invoke(p,"CHN"); //String nation = p.show("CHN");
+        System.out.println(returnValue);
+
+        System.out.println("*************如何调用静态方法*****************");
+
+        // private static void showDesc()
+
+        Method showDesc = clazz.getDeclaredMethod("showDesc");
+        showDesc.setAccessible(true);
+        //如果调用的运行时类中的方法没返回值，则此invoke()返回null
+//        Object returnVal = showDesc.invoke(null);
+        Object returnVal = showDesc.invoke(Person.class);
+        System.out.println(returnVal);//null
+
+}
+```
+
+
+
++ 动态代理
+
 
 
 ## 2.Java高级编程知识
@@ -3167,6 +3254,24 @@ undolog会形成一个链表，链表首部存储的是最新的旧记录，链�
 
 
 
+这里存在一个bin log和redo log的写入时机
+
+如果先写redo log，那么当redo log写入完成后，此时断电了，导致bin log没有写入，而此时整个项目是有A(主)h和B(从)，主机B需要从主机A中通过bin log同步数据，此时会造成数据丢失。
+
+
+
+如果先写bin log，那么主机B通过bin log通过数据后，主机A中的redo log没有读取到数据，导致主机A中缺失当前数据。
+
+<img src="javaImage/redolog.png" alt="avatar" style="zoom:100%;" />
+
+
+
+**两阶段提交**
+
+首先写入redo log，然后将状态置为prepare状态，如果此时断电(①处断电)，恢复后，要首先检查redo log的状态，发现是prepare状态，去bin log中找对象修改的数据，如果没有则将当前redo log中记录的数据置为失效状态；如果有，则将redo log的状态改为commit状态。
+
+如果是②处断电，同样首先检查redo log状态，如果是prepare状态，再去检查bin log是否有对应的数据，如果有则将redo log的状态置为commit，如果没有则将此时的数据redo log写入的数据置为失效，以此保证数据的一致性。
+
 `redo log`包括两部分：
 
 + 一个是内存中的日志缓冲(`redo log buffer`)，
@@ -3194,7 +3299,7 @@ undolog会形成一个链表，链表首部存储的是最新的旧记录，链�
 
 前面说过，`redo log`实际上记录数据页的变更，而这种变更记录是没必要全部保存，因此`redo log`实现上采用了大小固定，循环写入的方式，当写到结尾时，会回到开头循环写日志。如下图：
 
-<img src="javaImage/redolog_3.png" alt="avatar" style="zoom:100%;" />
+<img src="javaImage/redolog_3.png" alt="avatar" style="zoom:80%;" />
 
 同时我们很容易得知，**在innodb中，既有`redo log`需要刷盘，还有`数据页`也需要刷盘，`redo log`存在的意义主要就是降低对`数据页`刷盘的要求**。在上图中，`write pos`表示`redo log`当前记录的`LSN`(逻辑序列号)位置，`check point`表示**数据页更改记录**刷盘后对应`redo log`所处的`LSN`(逻辑序列号)位置。`write pos`到`check point`之间的部分是`redo log`空着的部分，用于记录新的记录；`check point`到`write pos`之间是`redo log`待落盘的数据页更改记录。当`write pos`追上`check point`时，会先推动`check point`向前移动，空出位置再记录新的日志。
 
@@ -3292,6 +3397,22 @@ select * from edu_student where age=?;
 select * from edu_student where age=? and name=?;
 # 索引的查询从左到右依次进行匹配，如果跳跃查询则无法使用索引
 ```
+
+
+
+### 5.5 有关字段
+
+char和varchar的区别
+
+> 最大长度不一样
+
+char的最大长度是255，varchar理论上最大长度为**65535**个字节
+
+> 存储方式不同
+
+**varchar**它存储的长度并不固定，只要实际存储的长度小于创建表时设置的**N**长度就可以。
+
+**char**在存储的时候假如实际存储的字符没有达到设置的**N**字符空间长度，那么会在存储的时候用空格去补全，但是当我们去查询拿到对应的数据时会把多余的空格为抹去，得到的还是实际存储的字符
 
 
 
@@ -3464,6 +3585,144 @@ AOP（Aspect Oriented Programming）意为：面向切面编程，通过预编�
 
 
 
+### 7.3 说明Bean的生命周期
+
+实例化和初始化
+
+实例化：在堆中开辟一块空间，属性都是默认值
+
+初始化：给属性完成复制操作
+
++ 填充属性和复制
++ 调用具体的初始化方法
+
+### 7.4 循环依赖
+
+
+
+### 7.5 三级缓存
+
+
+
+### 7.6 FactoryBean和beanFactory
+
+
+
+### 7.7 ApplicationContext和BeanFactory的区别
+
+
+
+### 7.8 设计模式
+
+#### 7.8.1 单例模式
+
+> 饿汉式(普通)
+
+```java
+// 饿汉式
+public class Singleton{
+    
+    // 1.私有化构造方法
+    private Singleton(){
+        
+    }
+    // 2.在类内部创建实例对象
+    private static Singleton INSTANCE = new Singleton();
+    
+    // 3.提供公有的静态方法，返回实例
+    public static Singleton getInstance(){
+        return INSTANCE;
+    }
+}
+```
+
+> 懒汉式
+
+```java
+public class Singleton{
+    
+    private Singleton(){
+        
+    }
+    
+    private static Singleton INSTANCE = null;
+    
+    public static Singleton getInstance(){
+        if(INSTANCE == null) INSTANCE = new Singleton();
+        return INSTANCE;
+    }
+}
+```
+
+> 懒汉式(双重检测)
+
+```java
+public class Singleton{
+    
+    private Singleton(){
+        
+    }
+    
+    private static volatile Singleton INSTANCE;
+    /*
+    if (instance == null) 如果此处有多个线程同时执行会出现线程不安全问题
+    解决方案: 使用双重检测和volatile(轻量级同步机制), 当某一个线程创建了instance实例后
+    volatile会将其同步到主存(即可见性), 其他线程也可以看到instance创建
+     */
+    public static Singleton getInstance(){
+        if(INSTANCE == null){
+            synchronized(Singleton.class){
+                if(INSTANCE == null) INSTANCE = new Singleton();
+            }
+        }
+        return INSTANCE;
+    }
+    
+}
+```
+
+> 静态内部类
+
+```java
+public class Singleton{
+    
+    private Singleton(){
+        
+    }
+    
+    private static class SingletonInstance{
+        private static final Singleton INSTANCE = new Singleton();
+    }
+    
+    public static Singleton getInstance(){
+        return SingletonInstance.INSTANCE;
+    }
+}
+```
+
+> 枚举
+
+```java
+public class SingleTest{
+    
+    public static void main(String[] args){
+        Singleton s1 = Singleton.INSTANCE;
+        Singleton s2 = Singleton.INSTANCE;
+        
+        System.out.println(s1 == s2);
+    }
+    
+}
+enum Singleton{
+    INSTANCE;
+}
+
+```
+
+
+
+
+
 ## 8 中间件
 
 
@@ -3476,3 +3735,54 @@ AOP（Aspect Oriented Programming）意为：面向切面编程，通过预编�
 + 流量削峰
 + 系统解耦
 
+
+
+## 9 Linux
+
+### 9.1 常用命令
+
+**cd （change directory：英文释义是改变目录）切换目录**
+
+**pwd （print working directory：显示当前工作目录的绝对路径）**
+
+**ls （ls：list的缩写，查看列表）查看当前目录下的所有文件夹（ls 只列出文件名或目录名）**
+
+**ll （ll：list的缩写，查看列表详情）查看当前目录下的所有详细信息和文件夹（ll 结果是详细,有时间,是否可读写等信息）**
+
+**touch （touch：创建文件）创建文件**
+
+**mkdir （mkdir：创建目录） 创建目录**
+
+**tail（尾巴） 查看文件命令（看最后多少行）**
+
+**vim （VI IMproved：改进版视觉）改进版文本编辑器**
+
+find -name 文件名;按照指定名称查找在当前目录下查找文件
+
+find / -name 文件名按照指定名称全局查找文件
+
+find -name '*文件名' ;任意前缀加上文件名在当前目录下查找文件
+
+find / -name '*文件名*' ;全局进行模糊查询带文件名的文件
+
+**ps （process status：进程状态，类似于windows的任务管理器）**
+
+ps aux|grep java ；查找带java关键字的进程
+
+ps -aux|grep redis BSD格式查看进程名称带有redis的系统进程（常用技巧）
+
+**netstat 命令**
+
+- VSZ //该进程使用的虚拟內存量（KB）
+- RSS //该进程占用的固定內存量（KB）
+- STAT //进程的状态
+- START //该进程被触发启动时间
+- TIME //该进程实际使用CPU运行的时间
+
+
+
+kill 命令用来中止一个进程。（要配合ps命令使用，配合pid关闭进程）
+
+- （ps类似于打开任务管理器，kill类似于关闭进程）
+- kill -5 进程的PID ;推荐,和平关闭进程
+- kill -9 PID ;不推荐,强制杀死进程
