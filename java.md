@@ -2809,6 +2809,12 @@ jinfo -flag UseParallelGC 27968
 
 <img src="javaImage/gc_collection.png" alt="avatar" style="zoom:100%;" />
 
+
+
+**各个垃圾回收器的发展历史：**
+
+<img src="javaImage/gc_history.png" alt="avatar" style="zoom:100%;" />
+
 Serial GC:新生代中采用**复制算法**，串行回收和Stop the World机制的方式执行内存回收
 
 配合Serial Old GC对老年代进行串行回收和Stop the World机制，内存回收算法采用**标记-压缩算法**
@@ -2821,9 +2827,7 @@ Serial GC:新生代中采用**复制算法**，串行回收和Stop the World机�
 
 ParNew GC是Serial的多线程版本：Par是Parallel的缩写，New是新生代
 
-ParNew GC采用并行回收，在年轻代中采用复制算法和STW机制
-
-
+ParNew GC采用并行回收，在年轻代中采用**复制算法**和STW机制
 
 
 
@@ -2833,7 +2837,7 @@ ParNew GC采用并行回收，在年轻代中采用复制算法和STW机制
 
 
 
-Parallel Scavenge GC是新生代中的垃圾回收器，采用复制算法，并行回收，和STW机制
+Parallel Scavenge GC是新生代中的垃圾回收器，采用**复制算法**，并行回收，和STW机制
 
 与ParNew不同，Parallel Scavenge GC目标是达到一个**可控制吞吐量**，它也被称为**吞吐量优先**的垃圾回收器
 
@@ -2845,7 +2849,7 @@ Parallel Scavenge GC是新生代中的垃圾回收器，采用复制算法，并
 
 
 
-Paralle Old GC同样在老年代采用标记-压缩算法，并行回收，和STW机制
+Paralle Old GC同样在老年代采用**标记-压缩算法**，并行回收，和STW机制
 
 
 
@@ -2879,6 +2883,18 @@ Garbage First(G1)：JDK9中默认的垃圾回收器，兼顾年轻代和老年�
 + G1是一个并行回收器，它把堆内存分割为很多不相关的区域(物理上不连续)，使用不同的Region表示Eden,幸存者0区，幸存者1区和老年代
 + G1有计划的避免了在Java堆中进行垃圾回收，G1跟踪各个Region里面的垃圾堆积的价值，在后台维护一个优先列表，每个根据允许的收集时间，优先回收价值最大的Region
 + 由于这种方式则重点在回收垃圾最大量的区间，所以应该理解为：垃圾优先(Garbage First)
+
+
+
+采用G1垃圾回收器的堆内存划分为：Eden, Survivor, Old和Humongous(大对象)，堆被划分为大约2048个块，每块的大小是2的整数次幂，如1M、2M、4M、8M等，G1中增加了一个新的内存区域，叫做Humongous，当对象的大小**超过0.5个region，**就会放到Humongous中
+
+
+
+G1 GC的垃圾回收过程主要包括如下三个环节：
+
++ 年轻代GC(Young GC)
++ 老年代的并发标记过程(Concurrent Marking)
++ 混合回收(Mixed GC)
 
 ### 2.7 强软弱虚(引用)
 
@@ -3684,6 +3700,14 @@ AOP（Aspect Oriented Programming）意为：面向切面编程，通过预编�
 
 ### 7.3 说明Bean的生命周期
 
+Spring是一个帮助我们简化开发的框架，它的核心功能主要包括两个部分：一是IOC，二是AOP,而Bean的生命周期只是IOC创建对象的一个过程，里面大体包含实例化，初始化，对象使用和对象销毁，这是一个粗粒度的描述。
+
+然后我们从**实例化**开始描述，首先通过BeanDefinitionReader读取配置文件中的Bean的信息，然后通过反射的方式创建对象，此时只是在堆空间中申请对象空间，接着进行对象的**初始化**，通过populateBean()方法对自定义对象进行属性值赋值(默认值)，在该方法中会调用Bean的set()方法进行赋值操作，而还有一个部分容器属性，即Spring框架帮我们定义的一些属性，如ApplicationContext，在我们自定义对象中也可能使用到这些对象，此时会调用Aware接口判断自定义类是否实现了对应的容器属性接口，通过Aware接口判断是否能进行容器对象的赋值操作。相当于populateBean()和invokeAwareMethods()都执行成功后，我们的Bean对象就可以使用了。
+
+但是Spring是一个框架，在设计的过程中要充分考虑扩展性，在Bean完成创建后，可能存在一些需要对该对象进行扩展的操作，比如AOP的实现，就是对生成对象进行扩展的操作，因此在BeanPostProcessor接口中的after和before进行扩展操作，比如AOP的扩展操作就是在After()方法中进行的扩展操作，而在after()和before()方法之间还有一个还有一个初始化方法的调用，即invokeInitMethods()，这个方法在一般工作中很少使用，而它有一个非常重要的类**InitializingBean**，会给我们的对象留一个afterPropertiesSet()方法，这个方法会给用户最后一次机会完成对象中属性和方法的扩展操作。当这些步骤都执行完成后，我们的对象就创建完成了，可以通过context.getBean()获取对象。当对象使用完成后，容器关闭，会调用close()方法关闭对象。销毁产生的对象。
+
+<img src="javaImage/spring_bean2.png" alt="avatar" style="zoom:100%;" />
+
 实例化和初始化
 
 实例化：在堆中开辟一块空间，属性都是默认值
@@ -3693,17 +3717,139 @@ AOP（Aspect Oriented Programming）意为：面向切面编程，通过预编�
 + 填充属性和复制
 + 调用具体的初始化方法
 
+<img src="javaImage/spring_bean1.png" alt="avatar" style="zoom:100%;" />
+
+
+
+Spring中的Aware接口
+
+```java
+public interface Aware {
+}
+```
+
+Aware接口的实现类
+
+```java
+public interface ApplicationContextAware extends Aware {
+
+	/**
+	 * Set the ApplicationContext that this object runs in.
+	 * Normally this call will be used to initialize the object.
+	 * <p>Invoked after population of normal bean properties but before an init callback such
+	 * as {@link org.springframework.beans.factory.InitializingBean#afterPropertiesSet()}
+	 * or a custom init-method. Invoked after {@link ResourceLoaderAware#setResourceLoader},
+	 * {@link ApplicationEventPublisherAware#setApplicationEventPublisher} and
+	 * {@link MessageSourceAware}, if applicable.
+	 * @param applicationContext the ApplicationContext object to be used by this object
+	 * @throws ApplicationContextException in case of context initialization errors
+	 * @throws BeansException if thrown by application context methods
+	 * @see org.springframework.beans.factory.BeanInitializationException
+	 */
+	void setApplicationContext(ApplicationContext applicationContext) throws BeansException;
+
+}
+```
+
+加入我们在自定义类中也定义了容器对象为私有属性，如
+
+```java
+public class Student{
+    private int id;
+    private String name;
+    
+    private ApplicationContext applicationContext;
+    
+    public void setId(int id){
+        this.id = id;
+    }
+    
+    public int getId(){
+        return this.id;
+    }
+    
+    public void setName(String name){
+        this.name = name;
+    }
+    
+    public String getName(){
+        return this.name;
+    }
+    
+    /* 这里容器对象的set方法由谁在什么时候调用
+    肯定是由Spring容器进行调用
+    定义一个规范的接口来判断是否进行set方法的调用，此接口即为Aware接口
+    在某一个固定的步骤中判断该类是否实现了Aware接口，如果实现了在进行子类的判断
+    */
+    public void setApplicationContext(ApplicationContext applicationContext){
+        this.applicationContext = applicationContext;
+    }
+    
+    public ApplicationContext getApplicationContext(){
+        return this.applicationContext;
+    }
+}
+```
+
+
+
 ### 7.4 循环依赖
 
 
 
 ### 7.5 三级缓存
 
+```java
+// 一级缓存
+private final Map<String, Object> singletonObjects = new ConcurrentHashMap(256);
+// 三级缓存
+private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap(16);
+// 二级缓存
+private final Map<String, Object> earlySingletonObjects = new HashMap(16);  
+```
 
+ObjectFactory：函数式接口，有且仅有一个方法，叫做getObject()，可以将lambda表达式放到具体的方法参数中，再执行的时候不会调用当前的lambda表达式，而是在调用getObject()方法的时候开始执行lambda()表达式中的逻辑
+
++ 三个map集合中分别存储什么对象
+
+一级缓存：实例化和初始化完成的对象(成品)
+
+二级对象：实例化但没有初始化的对象(半成品)
+
+三级缓存：一个lambda表达式的引用
+
++ 三个map的查找方式是什么
+
+先从一级中查找，如果没有从二级缓存中查找，没有的话再从三级缓存中查找
+
++ 如果只有只有一个map缓存，可以解决三级缓存问题
+
+不能，如果只用一个map结构，那么半成品和成品会放到同一个map对象中，半成品对象无法直接暴露给用户，所以想解决一个缓存的问题，就需要给value值上作标记，每次获取的时候，对value值进行判断，比较麻烦，所以使用两个map结构可以解决问题，但是一个map不行。
+
+> 如果只有两个map缓存，能解决循环依赖问题吗？
+
+可以解决，但是存在前提，整个循环引用过程中没有aop的过程，二级缓存可以解决，如果有aop的话必须使用三级缓存
+
+> 为什么使用aop后就必须使用三级缓存？
+
++ 在创建代理对象的时候，是否创建原始对象：需要
++ 同一个map结构中，能否包含同名的两个对象：不能
++ 当创建完代理对象之后，对外暴露的是原始对象还是代理对象：程序无法判断是那一个具体的对象，所以当创建代理对象之后要覆盖原始对象
++ 对象暴露在对外暴露调用使用的时候，无法预估在什么时间对外暴露，也就是无法确定覆盖时间，怎么办？
 
 ### 7.6 FactoryBean和beanFactory
 
+相同点：
 
+都是用来创建Bean对象的
+
+不同点：
+
+使用BeanFactory创建对象的时候，必须要遵循严格的生命周期，比较复杂，如果想要简单的自定义某个对象的创建，同时创建完交给Spring管理，那么就需要实现FactoryBean接口了
+
++ isSingleton: 是否是单例对象
++ getObjectType:获取返回对象的类型
++ getObject:自定义创建对象的过程
 
 ### 7.7 ApplicationContext和BeanFactory的区别
 
