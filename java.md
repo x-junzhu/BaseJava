@@ -811,7 +811,7 @@ Node<K,V> next;
 
 多线程环境下
 
-JDK1.7：产生环形链表，主要因为尾插法会出现倒序的现象，当一个线程正在准备迁移数据，此时CPU资源被另一个线程抢夺，并完成数据迁移，上一个线程重新获取CPU资源后，会形成环形链表。
+JDK1.7：产生环形链表，主要因为头插法会出现倒序的现象，当一个线程正在准备迁移数据，此时CPU资源被另一个线程抢夺，并完成数据迁移，上一个线程重新获取CPU资源后，会形成环形链表。
 
 JDK1.8：会出现数据丢失现象
 
@@ -2113,6 +2113,37 @@ public ThreadPoolExecutor(int corePoolSize,//核心线程池大小
 
   总是假设最好的情况，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，可以使用版本号机制和CAS算法实现。    **乐观锁适用于多读的应用类型，这样可以提高吞吐量**    如：使用CAS+自旋实现乐观锁
 
+
+
+作者：Li-Xiao-Hu
+链接：https://www.nowcoder.com/discuss/811444?type=2&order=3&pos=28&page=1&source_id=discuss_tag_nctrack&channel=-1&ncTraceId=405c4f1f511649b2add8a0dada1856cd.266.16397477277021961&gio_id=5F05572E66A9D4855FAFDB3B482881CA-1639747726743
+来源：牛客网
+
+
+
+**（1）公平锁**  
+
+   公平锁是指多个线程按照申请锁的顺序来获取锁，类似排队打饭，先来后到。  
+
+**（2）非公平锁**  
+
+   非公平锁是指多个线程获取锁的顺序并不是按照申请锁的顺序，有可能后申请的线程比先申请的线程优先获取锁。有可能，会造成优先级反转或者饥饿现象。  
+
+-  对于Java ReentrantLock而言，通过构造函数指定该锁是否是公平锁，默认是非公平锁。非公平锁的优点在于吞吐量比公平锁大。 
+-  对于Synchronized而言，也是一种非公平锁。由于其并不像ReentrantLock是通过AQS的来实现线程调度，所以并没有任何办法使其变成公平锁。 
+
+   **关于两者的区别：**  
+
+-  公平锁：Threads acquire a fair lock in the order which they requested it. 
+
+   公平锁，就是很公平，在并发环境中，每个线程在获取锁时会先查看此锁维护的等待队列，如果为空，或者当前线程是等待队列的第一个，就占有锁，否则就会加入到等待队列中，以后按照FIFO的规则从队列中取到自己。  
+
+-  非公平锁：a nonfair lock permits barging: treads requesting a lock can jump ahead of the queue of waiting threads if the lock happens to be available when it is requested. 
+
+   非公平锁，毕竟粗鲁，上来就直接尝试占有锁，如果尝试失败，就再采用类似公平锁的那种方式；
+
+
+
 Java对象的内存布局
 
 <img src="javaImage/object_info.jpg" alt="avatar" style="zoom:80%;" />
@@ -2125,6 +2156,8 @@ Java对象的内存布局
 + 内存填充：64位的HotSpot要求Java对象地址按8字节对齐，即每个对象所占内存的字节数必须是8字节的整数倍。
 
 
+
+**ReentrantLock 和 synchronized 都是可重入锁**
 
 **sychronized是可重入锁**
 
@@ -2261,7 +2294,282 @@ volatile 的底层实现原理是内存屏障，Memory Barrier（Memory Fence）
 + 写屏障仅仅是保证之后的读能够读到最新的结果，但不能保证读跑到它前面去
 + 而有序性的保证也只是保证了本线程内相关代码不被重排序，无法保证线程间的指令交错
 
-### 1.18 原子类Atomic
+
+
+wait()和notify()这些方法只能在持有锁对象的方法里调用
+
+notify()方法时随机唤醒阻塞队列的线程
+
+```java
+synchronized(this){
+    this.wait();
+}
+```
+
+
+
+### 1.18 AQS和ReentrantLock
+
+`AbstractQueuedSynchronizer`
+
+```java
+static final class Node {
+        /** Marker to indicate a node is waiting in shared mode */
+        static final Node SHARED = new Node();
+        /** Marker to indicate a node is waiting in exclusive mode */
+        static final Node EXCLUSIVE = null;
+
+        /** waitStatus value to indicate thread has cancelled */
+        static final int CANCELLED =  1;
+        /** waitStatus value to indicate successor's thread needs unparking */
+        static final int SIGNAL    = -1;// 表示下一个阻塞线程需要被唤醒
+
+        /**
+         * Status field, taking on only the values:
+         *   SIGNAL:     The successor of this node is (or will soon be)
+         *               blocked (via park), so the current node must
+         *               unpark its successor when it releases or
+         *               cancels. To avoid races, acquire methods must
+         *               first indicate they need a signal,
+         *               then retry the atomic acquire, and then,
+         *               on failure, block.
+         *   CANCELLED:  This node is cancelled due to timeout or interrupt.
+         *               Nodes never leave this state. In particular,
+         *               a thread with cancelled node never again blocks.
+         *   CONDITION:  This node is currently on a condition queue.
+         *               It will not be used as a sync queue node
+         *               until transferred, at which time the status
+         *               will be set to 0. (Use of this value here has
+         *               nothing to do with the other uses of the
+         *               field, but simplifies mechanics.)
+         *   PROPAGATE:  A releaseShared should be propagated to other
+         *               nodes. This is set (for head node only) in
+         *               doReleaseShared to ensure propagation
+         *               continues, even if other operations have
+         *               since intervened.
+         *   0:          None of the above
+         *
+         * The values are arranged numerically to simplify use.
+         * Non-negative values mean that a node doesn't need to
+         * signal. So, most code doesn't need to check for particular
+         * values, just for sign.
+         *
+         * The field is initialized to 0 for normal sync nodes, and
+         * CONDITION for condition nodes.  It is modified using CAS
+         * (or when possible, unconditional volatile writes).
+         */
+        volatile int waitStatus;
+
+        /**
+         * Link to predecessor node that current node/thread relies on
+         * for checking waitStatus. Assigned during enqueuing, and nulled
+         * out (for sake of GC) only upon dequeuing.  Also, upon
+         * cancellation of a predecessor, we short-circuit while
+         * finding a non-cancelled one, which will always exist
+         * because the head node is never cancelled: A node becomes
+         * head only as a result of successful acquire. A
+         * cancelled thread never succeeds in acquiring, and a thread only
+         * cancels itself, not any other node.
+         */
+        volatile Node prev;
+
+        /**
+         * Link to the successor node that the current node/thread
+         * unparks upon release. Assigned during enqueuing, adjusted
+         * when bypassing cancelled predecessors, and nulled out (for
+         * sake of GC) when dequeued.  The enq operation does not
+         * assign next field of a predecessor until after attachment,
+         * so seeing a null next field does not necessarily mean that
+         * node is at end of queue. However, if a next field appears
+         * to be null, we can scan prev's from the tail to
+         * double-check.  The next field of cancelled nodes is set to
+         * point to the node itself instead of null, to make life
+         * easier for isOnSyncQueue.
+         */
+        volatile Node next;
+
+        /**
+         * The thread that enqueued this node.  Initialized on
+         * construction and nulled out after use.
+         */
+        volatile Thread thread;
+
+        /**
+         * Link to next node waiting on condition, or the special
+         * value SHARED.  Because condition queues are accessed only
+         * when holding in exclusive mode, we just need a simple
+         * linked queue to hold nodes while they are waiting on
+         * conditions. They are then transferred to the queue to
+         * re-acquire. And because conditions can only be exclusive,
+         * we save a field by using special value to indicate shared
+         * mode.
+         */
+        Node nextWaiter;
+}
+```
+
+
+
+<img src="javaImage/AQS.png" alt="avatar" style="zoom:100%;" />
+
+**ReentrantLock既可以实现公平锁也可以实现非公平锁，也是一个互斥锁或者可重入锁**
+
+
+
+> 锁的入口
+
+```java
+// sync有公平和非公平两种，默认非公平锁
+public void lock() {
+    sync.lock();
+}
+```
+
+如果从非公平锁进入
+
+```java
+final void lock() {
+    // 使用CAS将state修改为1，如果成果返回true
+    if (compareAndSetState(0, 1))
+        // 成功后将一个属性设置为当前线程，该属性是从AQS的父类继承过来的
+        setExclusiveOwnerThread(Thread.currentThread());
+    else
+        acquire(1);
+}
+```
+
+继续查看acquire()方法
+
+```java
+public final void acquire(int arg) {
+    if (!tryAcquire(arg) &&
+        // 获取资源失败后，需要将当前线程封装成一个Node，追加到AQS队列中
+        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        // 线程中断
+        selfInterrupt();
+}
+```
+
+继续查看tryAcquire()方法
+
+```java
+final boolean nonfairTryAcquire(int acquires) {
+    final Thread current = Thread.currentThread();
+    // 获取AQS锁的状态state
+    int c = getState();
+    // state=0表示之前的线程已经释放了锁资源，可以尝试竞争了
+    if (c == 0) {
+        if (compareAndSetState(0, acquires)) {
+            setExclusiveOwnerThread(current);
+            return true;
+        }
+    }
+    // 当前占有资源的线程是否是当前的线程，即重入锁的操作
+    else if (current == getExclusiveOwnerThread()) {
+        // 将可重入次数+1
+        int nextc = c + acquires;
+        // 这里的判断，表明超出锁的最大可重入值，可以参照Integer.MAX_VALUE+1溢出后，符号位为1表示负数
+        if (nextc < 0) // overflow
+            throw new Error("Maximum lock count exceeded");
+        // 重新对锁进行赋值
+        setState(nextc);
+        return true;
+    }
+    return false;
+}
+```
+
+查看addWaiter()方法
+
+```java
+// 执行到该方法中，说明前面获取锁资源失败，现在执行将线程放入阻塞队列中
+private Node addWaiter(Node mode) {
+    // 创建当前Node,并且设置为当前线程
+    Node node = new Node(Thread.currentThread(), mode);
+    // Try the fast path of enq; backup to full enq on failure
+    // 获取AQS队列中的尾部节点
+    Node pred = tail;
+    // 如果当前队列尾部不为空，则将当前的Node接在尾部
+    if (pred != null) {
+        node.prev = pred;
+        // 同时使用CAS将Node设置为尾部
+        if (compareAndSetTail(pred, node)) {
+            pred.next = node;
+            return node;
+        }
+    }
+    enq(node);
+    return node;
+}
+```
+
+
+
+继续查看acquireQueued()方法
+
+```java
+// 执行到此处已经将node节点加入到双向队列当中
+final boolean acquireQueued(final Node node, int arg) {
+    boolean failed = true;
+    try {
+        boolean interrupted = false;
+        for (;;) {
+            // 获取当前节点的上一个节点，否则抛出异常
+            final Node p = node.predecessor();
+            // 如果p是头节点（即当前节点的上一个节点是头结点），然后再次尝试获取锁资源(state:0-1,或者锁重入操作)
+            // 这里开始体现非公平锁了，如果p是头节点，并且开始尝试获取锁
+            if (p == head && tryAcquire(arg)) {
+                // 如果抢到资源，通过setHead方法将node前面的排队线程置空
+                setHead(node);
+                p.next = null; // help GC
+                failed = false; // 更改标识，说明已经拿到资源，影响finally
+                return interrupted;
+            }
+            if (shouldParkAfterFailedAcquire(p, node) &&
+                // 使用UnSafe的park()方法抛出异常
+                parkAndCheckInterrupt())
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            cancelAcquire(node);
+    }
+}
+```
+
+继续看
+
+```java
+// node是当前节点，pred是前驱节点
+private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
+    // 上一个节点的状态，如果为Node.SIGNAL表示正常
+    int ws = pred.waitStatus;
+    if (ws == Node.SIGNAL)
+        /*
+             * This node has already set status asking a release
+             * to signal it, so it can safely park.
+             */
+        return true;
+    // ws>0表示该节点已经失效了
+    if (ws > 0) {
+        // 这里是一个循环，找到为失效的节点
+        do {
+            node.prev = pred = pred.prev;
+        } while (pred.waitStatus > 0);
+        pred.next = node;
+    } else {
+       	// 小于等于0，但是不等于-1，修改有效节点的状态为-1,因为只有为-1才会被下一个唤醒
+        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+    }
+    return false;
+}
+```
+
+
+
+
+
+### 1.19 原子类Atomic
 
 > 为什么引入原子类？
 
@@ -2289,7 +2597,7 @@ volatile：可见性、禁止指令重排
 
 
 
-### 1.19 ThreadLocal
+### 1.20 ThreadLocal
 
 ThreadLocal为每一个线程都提供了变量的副本，使得每一个线程在某一时间访问到的并不是同一个对象，这样就**隔离了多个线程对数据的数据共享，**这样的结果无非是耗费了内存，也大大减少了线程同步所带来的性能消耗，也减少了线程并发控制的复杂度。
 
@@ -2329,7 +2637,7 @@ static class Entry extends WeakReference<ThreadLocal<?>> {
 
 如果我们使用线程池，每次使用完线程都会放回池中，可能存在上一次未使用完的key-value没有被清除，这就可能存在数据错乱问题，所以需要通过remove方法清理，ThreadLocalMap集合中的key-value元素。
 
-###  1.20 反射
+###  1.21 反射
 
 Reflection(反射)是被视为动态语言的关键，反射机制允许程序在执行期借助于Reflection API取得任何类的内部信息，并能直接操作任意对象的内部属性及方法。
 
@@ -3712,7 +4020,7 @@ Spring是一个帮助我们简化开发的框架，它的核心功能主要包�
 
 实例化：在堆中开辟一块空间，属性都是默认值
 
-初始化：给属性完成复制操作
+初始化：给属性完成赋值操作
 
 + 填充属性和复制
 + 调用具体的初始化方法
@@ -4046,3 +4354,230 @@ kill 命令用来中止一个进程。（要配合ps命令使用，配合pid关�
 - （ps类似于打开任务管理器，kill类似于关闭进程）
 - kill -5 进程的PID ;推荐,和平关闭进程
 - kill -9 PID ;不推荐,强制杀死进程
+
+
+
+## X 项目
+
+### 10.1 单点登录
+
+单点登录(Single Sign on, SSO)
+
+> session广播机制
+
+实质是session复制
+
+> 使用cookie+redis实现
+
+1 在项目任何一个模块进行登录，登录成功之后将数据放入两个地方
+
++ redis：在key中：生成用户唯一标识(根据用户id,登录ip)，在value中：保存用户登录数据
++ cookie：把放入redis的数据放入cookie中
+
+2 在访问项目中的其他模块时，发送请求带着cookie进行发送，然后拿着cookie值进行验证：
+
+把获取的cookie值，到redis进行查询，根据key值进行查询，如果可以查到则证明登录成功，否则未进行登录
+
+> 使用token实现
+
+token是什么？是按照一定规则生成的字符串，可以包含用户信息
+
+1 在项目某个模块进行登录，登录之后，按照规则生成字符串，把登录之后用户的信息包含到生成的字符串里面，把字符串返回
+
++ 可以把字符串通过cookie返回
++ 可以把字符串通过地址栏进行返回
+
+2 再去访问其他项目模块时，每次访问在地址栏都会带着生成的字符串，在访问模块里面获取地址栏的字符串，根据字符串解析用户信息，如果可以获取到，就是已经登录，否则未登录。
+
+
+
+**使用token的具体落地-> JWT(Json Web Token)**
+
+<img src="javaImage/jwt.png" alt="avatar" style="zoom:100%;" />
+
+JWT生成字符串包含三个部分
+
++ jwt头信息
++ 有效载荷：包含主体信息（用户信息）
++ 签名哈希：即防伪标志
+
+```java
+// 定义两个常量
+public static final long EXPIRE = 1000 * 60 * 60 * 24;// 设置token过期时间
+public static final String APP_SECRET = "ukc8BDbRigUDaY6pZFfWus2jZWLPHO";// 秘钥
+
+
+public static String getJwtToken(Integer id, String nickname){
+
+    String JwtToken = Jwts.builder()
+        .setHeaderParam("typ", "JWT")// 设置jwt头信息
+        .setHeaderParam("alg", "HS256")
+        .setSubject("guli-user")
+        .setIssuedAt(new Date())
+        .setExpiration(new Date(System.currentTimeMillis() + EXPIRE))// 设置过期时间，和当前时间对比
+
+        .claim("id", id)// 设置token主体部分, 本次只放了用户id和姓名
+        .claim("nickname", nickname)
+
+        .signWith(SignatureAlgorithm.HS256, APP_SECRET)// 签名哈希
+        .compact();
+
+    return JwtToken;
+}
+
+
+/**
+     * 判断token是否存在与有效
+     * @param jwtToken
+     * @return
+     */
+public static boolean checkToken(String jwtToken) {
+    if(StringUtils.isEmpty(jwtToken)) return false;
+    try {
+        Jwts.parser().setSigningKey(APP_SECRET).parseClaimsJws(jwtToken);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+    }
+    return true;
+}
+
+    /**
+     * 根据token获取用户id
+     * @param request
+     * @return
+     */
+public static String getMemberIdByJwtToken(HttpServletRequest request) {
+    String jwtToken = request.getHeader("token");
+    if(StringUtils.isEmpty(jwtToken)) return "";
+    Jws<Claims> claimsJws = 		Jwts.parser().setSigningKey(APP_SECRET).parseClaimsJws(jwtToken);
+    Claims claims = claimsJws.getBody();
+    // (String)claims.get("id");
+    return String.valueOf(claims.get("id"));
+}
+```
+
+
+
+### 10.2 Spring Security
+
+Spring Security 基于 Spring 框架，提供了一套 Web 应用安全性的完整解决方案。一般来说，Web 应用的安全性包括**用户认证**（**Authentication**）和用户授权（**Authorization**）两个部分。
+
+（1）用户认证指的是：验证某个用户是否为系统中的合法主体，也就是说用户能否访问该系统。用户认证一般要求用户提供用户名和密码。系统通过校验用户名和密码来完成认证过程。
+
+（2）用户授权指的是验证某个用户是否有权限执行某个操作。在一个系统中，不同用户所具有的权限是不同的。比如对一个文件来说，有的用户只能进行读取，而有的用户可以进行修改。一般来说，系统会为不同的用户分配不同的角色，而每个角色则对应一系列的权限。
+
+
+
+**Spring Security其实就是用filter，多请求的路径进行过滤。**
+
+（1）如果是基于Session，那么Spring-security会对cookie里的sessionid进行解析，找到服务器存储的sesion信息，然后判断当前用户是否符合请求的要求。
+
+（2）如果是token，则是解析出token，然后将当前请求加入到Spring-security管理的权限信息中去
+
+<img src="javaImage/access_contron.png" alt="avatar" style="zoom:80%;" />
+
+
+
+> 用户认证
+
+实现UserDetails类, 在UserDetails中有四种状态，分别是账户是否过期、账户是否被锁定、用户凭据(密码)是否过期和用户是否失效。
+
+```java
+public interface UserDetails extends Serializable {
+
+	Collection<? extends GrantedAuthority> getAuthorities();
+
+	String getPassword();
+
+	String getUsername();
+
+	/**
+	 * Indicates whether the user's account has expired. An expired account cannot be
+	 * authenticated.
+	 *
+	 * @return <code>true</code> if the user's account is valid (ie non-expired),
+	 * <code>false</code> if no longer valid (ie expired)
+	 */
+	boolean isAccountNonExpired();
+
+	/**
+	 * Indicates whether the user is locked or unlocked. A locked user cannot be
+	 * authenticated.
+	 *
+	 * @return <code>true</code> if the user is not locked, <code>false</code> otherwise
+	 */
+	boolean isAccountNonLocked();
+
+	/**
+	 * Indicates whether the user's credentials (password) has expired. Expired
+	 * credentials prevent authentication.
+	 *
+	 * @return <code>true</code> if the user's credentials are valid (ie non-expired),
+	 * <code>false</code> if no longer valid (ie expired)
+	 */
+	boolean isCredentialsNonExpired();
+
+	/**
+	 * Indicates whether the user is enabled or disabled. A disabled user cannot be
+	 * authenticated.
+	 *
+	 * @return <code>true</code> if the user is enabled, <code>false</code> otherwise
+	 */
+	boolean isEnabled();
+}
+```
+
+
+
+> 用户授权
+
+覆盖**WebSecurityConfigurerAdapter**类中的configure方法，配置拦截措施。
+
+BCryptPasswordEncoder：提供的密码加密的类
+
+```java
+protected void configure(HttpSecurity http) throws Exception {
+    logger.debug("Using default configure(HttpSecurity). If subclassed this will potentially override subclass configure(HttpSecurity).");
+
+    http
+        .authorizeRequests()
+        .anyRequest().authenticated()
+        .and()
+        .formLogin().and()
+        .httpBasic();
+}
+```
+
+
+
+<img src="javaImage/chain.png" alt="avatar" style="zoom:80%;" />
+
+
+
+### 10.3 课程支付
+
+支付流程：
+
+如果课程是免费的或者已经购买过，直接点击立即观看即可。
+
+如果课程是收费的，点击课程后进入课程详情页面，然后点击立即购买，生成订单，跳转到订单页面，点击立即支付，跳转到支付页面，生成微信扫描支付的二维码。支付成功后跳转到页面详情，即可点击观看。
+
+<img src="javaImage/guli_pay.png" alt="avatar" style="zoom:80%;" />
+
+涉及到的接口：
+
++ 生成订单的接口
++ 根据订单id查询订单信息的接口
++ 生成微信支付的二维码
++ 查询订单支付状态
+
+
+
+>  订单模块
+
+service-order 通过Nacos，根据**课程id(在地址栏中)**远程调用service-edu模块中的课程信息，生成订单信息
+
+通过token获取用户id,然后通过id，远程调用service-ucenter查询用户信息，保存用户信息到 订单信息中，
+
+最后返回**订单号**
