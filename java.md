@@ -4051,7 +4051,7 @@ Spring是一个帮助我们简化开发的框架，它的核心功能主要包�
 
 但是Spring是一个框架，在设计的过程中要充分考虑扩展性，在Bean完成创建后，可能存在一些需要对该对象进行扩展的操作，比如AOP的实现，就是对生成对象进行扩展的操作，因此在BeanPostProcessor接口中的after和before进行扩展操作，比如AOP的扩展操作就是在After()方法中进行的扩展操作，而在after()和before()方法之间还有一个还有一个初始化方法的调用，即invokeInitMethods()，这个方法在一般工作中很少使用，而它有一个非常重要的类**InitializingBean**，会给我们的对象留一个afterPropertiesSet()方法，这个方法会给用户最后一次机会完成对象中属性和方法的扩展操作。当这些步骤都执行完成后，我们的对象就创建完成了，可以通过context.getBean()获取对象。当对象使用完成后，容器关闭，会调用close()方法关闭对象。销毁产生的对象。
 
-<img src="javaImage/spring_bean2.png" alt="avatar" style="zoom:100%;" />
+<img src="javaImage/spring_bean2.png" alt="avatar" style="zoom:140%;" />
 
 实例化和初始化
 
@@ -4139,6 +4139,10 @@ public class Student{
 
 
 ### 7.4 循环依赖
+
+
+
+<img src="javaImage/circle.png" alt="avatar" style="zoom:120%;" />
 
 
 
@@ -4618,3 +4622,83 @@ service-order 通过Nacos，根据**课程id(在地址栏中)**远程调用servi
 通过token获取用户id,然后通过id，远程调用service-ucenter查询用户信息，保存用户信息到 订单信息中，
 
 最后返回**订单号**
+
+
+
+### 10.4 mysql调优
+
+```sql
+# 查询慢查询次数
+show status like 'slow_queries'
+# 查询当前数据库执行CURD执行的返回的行数
+show status like 'innodb_rows_%'
+innodb_rows_read: select查询返回的行数
+innodb_rows_inserted: 执行insert操作返回的行数
+innodb_rows_updated:执行update操作返回的行数
+innodb_rows_deleted:执行delete操作返回的行数
+# 查询上一次操作查询的数据页的次数
+show status like 'last_query_cost';
+```
+
+
+
+> 慢查询日志
+
+```sql
+# 如果当前的查询等操作时间唱过long_query_time，就会被记录在慢查询日志中，默认为10s
+long_query_time
+```
+
+
+
+Explain+SQL语句分析性能
+
+**分析的主要字段**
+
+![avatar](javaImage/mysql_explain_result.png)
+
+
+
+**select_type**
+
+select_type 代表查询的类型，主要是用于区别普通查询、联合查询、子查询等的复杂查询。
+
+| select_type 属性     | 含义                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| SIMPLE               | 简单的select 查询,查询中不包含子查询或者UNION                |
+| PRIMARY              | 查询中若包含任何复杂的子部分，最外层查询则被标记为Primary    |
+| DERIVED              | 在FROM 列表中包含的子查询被标记为DERIVED(衍生)<br>MySQL 会递归执行这些子查询, 把结果放在临时表里。 |
+| SUBQUERY             | 在SELECT或WHERE列表中包含了子查询                            |
+| DEPEDENT SUBQUERY    | 在SELECT或WHERE列表中包含了子查询,子查询基于外层             |
+| UNCACHEABLE SUBQUERY | 无法使用缓存的子查询                                         |
+| UNION                | 若第二个SELECT出现在UNION之后，则被标记为UNION；<br/>若UNION包含在FROM子句的子查询中,外层SELECT将被标记为：DERIVED |
+| UNION RESULT         | 从UNION表获取结果的SELECT                                    |
+
+
+
+
+
+**type**
+
+type 是查询的访问类型。是较为重要的一个指标，结果值从最好到最坏依次是:
+
+system > const > eq_ref > ref > fulltext > ref_or_null > index_merge > unique_subquery > index_subquery > range > index > ALL 
+
+一般来说，得保证查询至少达到**range **级别，最好能达到ref。
+
+
+
+**Extra**
+
+其他的额外重要的信息
+
++ Using filesort:说明mysql 会对数据使用一个外部的索引排序，而不是按照表内的索引顺序进行读取。MySQL 中无法利用索引完成的排序操作称为“文件排序”。
++ Using temporary:使了用临时表保存中间结果,MySQL 在对查询结果排序时使用临时表。常见于排序order by 和分组查询group by。
++ Using index:Using index 代表表示相应的select 操作中使用了覆盖索引(Covering Index)，避免访问了表的数据行，效率不错！
+  如果同时出现using where，表明索引被用来执行索引键值的查找;如果没有同时出现using where，表明索引只是用来读取数据而非利用索引执行查找。利用索引进行了排序或分组。
+
++ Using where:表明使用了where 过滤。
++ Using join buffer:使用了连接缓存。
++ impossible where:where 子句的值总是false，不能用来获取任何元组。
++ select tables optimized away:在没有GROUPBY 子句的情况下，基于索引优化MIN/MAX 操作或者对于MyISAM 存储引擎优化COUNT(*)操
+  作，不必等到执行阶段再进行计算，查询执行计划生成的阶段即完成优化。
