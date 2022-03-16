@@ -2115,12 +2115,6 @@ public ThreadPoolExecutor(int corePoolSize,//核心线程池大小
 
 
 
-作者：Li-Xiao-Hu
-链接：https://www.nowcoder.com/discuss/811444?type=2&order=3&pos=28&page=1&source_id=discuss_tag_nctrack&channel=-1&ncTraceId=405c4f1f511649b2add8a0dada1856cd.266.16397477277021961&gio_id=5F05572E66A9D4855FAFDB3B482881CA-1639747726743
-来源：牛客网
-
-
-
 **（1）公平锁**  
 
    公平锁是指多个线程按照申请锁的顺序来获取锁，类似排队打饭，先来后到。  
@@ -2572,7 +2566,97 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
 
 
 
+**基于AQS实现的其他辅助类**
 
+> CountDownLatch
+
+
+```java
+// 类似于计算器
+public static void main(String[] args) throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(6);
+
+
+        for (int i = 1; i <= 6 ; i++) {
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + "离开教室");
+                countDownLatch.countDown();//-1操作
+            }, String.valueOf(i)).start();
+        }
+
+        // 等待计数器归零, 然后再向下执行
+        countDownLatch.await();
+
+        System.out.println("关门");
+    }
+```
+
+> CyclicBarrier
+
+```java
+// 类似于累加工具，达到设定的某个值后执行下面逻辑
+public static void main(String[] args) {
+
+        // 召唤神龙的线程
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(7, () -> {
+            System.out.println("七颗龙珠集齐, 召唤神龙");
+        });
+        // 集齐七颗龙珠召唤神龙
+        for (int i = 1; i <= 7 ; i++) {
+            final int temp = i;
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + "收集到第" + temp + "颗龙珠");
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+            }, String.valueOf(temp)).start();
+        }
+    }
+```
+
+
+
+> Semaphore
+
+```java
+// 模拟停车位(3个), 应用场景: 限流
+    public static void main(String[] args) {
+        // 3个线程等同于3个停车位
+        Semaphore semaphore = new Semaphore(3);
+
+        for (int i = 1; i <= 6 ; i++) {
+            final int temp = i;
+            new Thread(() -> {
+                try {
+                    semaphore.acquire();
+                    System.out.println(Thread.currentThread().getName() + "获取到第" + temp + "停车位");
+                    // 模拟停车时间
+                    TimeUnit.SECONDS.sleep(2);
+                    System.out.println(Thread.currentThread().getName() + "离开到第" + temp + "停车位");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    semaphore.release();
+                }
+            }, "宝马X" + temp).start();
+
+        }
+    }
+```
+
+
+
+> BlockingQueue
+
+|     方式     | 抛出异常  | 不会抛出异常,有返回值 | 阻塞等待 | 超时等待 |
+| :----------: | :-------: | :-------------------: | :------: | :------: |
+|     添加     |   add()   |        offer()        |  put()   | offer()  |
+|     移除     | remove()  |        poll()         |  take()  |  poll()  |
+| 查看队首元素 | element() |        peek()         |    -     |    -     |
 
 ### 1.19 原子类Atomic
 
@@ -3323,6 +3407,19 @@ tcp是面向连接的，站在Client角度已经发送和接受到，而站在Se
 
 因为TCP是全双工的，Client和Server都可以同时发送数据，当Client发送fin时，Server还在发送数据，所以等到Server发送数据结束后再发送一个我也可以断开连接了
 
+
+
+<img src="javaImage/net_closed.png" alt="avatar" style="zoom:100%;" />
+
+第四次挥手：客户端收到 FIN 之后，一样发送一个 ACK 报文作为应答，且把服务端的序列号值 + 1 作为自己 ACK 报文的序列号值，此时客户端处于 **TIME_WAIT** 状态。需要过一阵子以确保服务端收到自己的 ACK 报文之后才会进入 CLOSED 状态。
+
+为什么客户端发送 ACK 之后不直接关闭，而是要等一阵子才关闭？
+
+**这其中的原因就是，要确保服务器是否已经收到了我们的 ACK 报文，如果没有收到的话，服务器会重新发 FIN 报文给客户端，客户端再次收到 ACK 报文之后，就知道之前的 ACK 报文丢失了，然后再次发送 ACK 报文。**
+
+
+
+
 ### 3.2 cookie和session
 
 cookie和session的区别:
@@ -3405,7 +3502,6 @@ http协议主要由三个部分组成
 
 URI = Uniform Resource Identifier 统一资源**标志符**
 
-
 URL = Uniform Resource Locator 统一资源**定位符**
 URN = Uniform Resource Name 统一资源**名称**
 
@@ -3422,6 +3518,10 @@ URN = Uniform Resource Name 统一资源**名称**
 GET方法将请求参数放在URL中，长度受限，直接将请求数据放在URL存在安全问题
 
 POST方法将请求参数放在请求体中，request body，没有限制长度
+
+
+
+**对于GET方式的请求，浏览器会把http header和data一并发送出去，服务器响应200（返回数据）；而对于POST，浏览器先发送header，服务器响应100 continue，浏览器再发送data，服务器响应200 ok（返回数据）。**
 
 
 
@@ -3450,9 +3550,45 @@ POST方法将请求参数放在请求体中，request body，没有限制长度
 
 **发送方有拥塞窗口，发送数据前比对接收方发过来的即使窗口，缩小**
 
-**慢启动、拥塞避免、拥塞发送、快速恢复**
+**慢启动、拥塞避免、快重传、快速恢复**
 
 
+
+发送方维护一个拥塞窗口(cwnd)的状态变量，其值取决于网络的拥塞程度，并且动态变化
+
++ 拥塞窗口的维护原则：只要网络没有出现拥塞，拥塞窗口就在增大一些，但是只要网络出现拥塞，拥塞窗口就减少一些
++ 判断出现拥塞的依据：没有按时收到应当到达的确认报文（即发生了重传）
++ 发送方将拥塞窗口作为发送窗口，即swnd=cwnd
++ 维护一个慢开始门限ssthresh状态变量
+
++ + 当cwnd < ssthresh**(慢开始的初始值)**，使用慢开始算法
+  + 当cwnd > ssthresh，停止使用慢开始算法而改用拥塞避免算法
+  + 当cwnd = ssthresh，即可使用慢开始算法，也可以使用拥塞避免算法
+
+拥塞控制流程：
+
+首先设置ssthresh=16,初始cwnd=1,每次发送方给接收方发送1个报文段，接收方给发送方发送2个确认，下一次cwnd=2,即发送方给接收方发送2个报文段，接收方给发送方发送2个确认，接着，cwnd=4,即发送方给接收方发送4个报文段，接收方给发送方发送4个确认；继续，cwnd=8,即发送方给接收方发送8个报文段，接收方给发送方发送8个确认，继续，cwnd=16,即发送方给接收方发送16个报文段，接收方给发送方发送16个确认；然后cwnd超过ssthresh值后，下面cwnd窗口就变成了每次只增加1，即cwnd=17,发送方给接收方发送17个报文段，接收方给发送方发送17个确认,继续增加，假如，某次cwnd=24,出现报文丢失，发送方只收到20个报文确认，此时发生了网络拥塞，会进行一个超时重传，会将ssthresh的值更新为拥塞时cwnd的一半，即ssthresh=12,而cwnd=1，重新开始执行慢开始算法。
+
+**快重传**
+
+<img src="javaImage/confirm.png" alt="avatar" style="zoom:100%;" />
+
+快重传，就是是发送方尽快进行重传，而不是等待超时重传计时器超时再重传
+
++ 要求接收方不要等待自己发送数据时才进行捎带确认，而是立即发送确认
++ 即使收到了失序的报文段也要立即发出对自己已收到的报文段的重复确认
++ 发送方一旦收到3个连续的重复确认，就将相应的报文段立即重传，而不是等待该报文段超时重传计时器超时再重传
++ 对于个别丢失的报文段，发送方不会出现超时重传，也就是不会误认为出现拥塞，进而降低拥塞窗口cwnd=1
+
+
+
+发送方一旦收到了3个重复的确认，就知道现在只是丢失了个别报文段，于是不启动慢开始算法，而是执行快恢复算法
+
++ 发送方将慢开始门限ssthresh值和拥塞窗口cwnd值调整为当前窗口的一半，开始执行拥塞避免算法
++ 也就是把快恢复开始时的拥塞窗口值在增大一些，即ssthresh+3
+  + 既然发送方收到三个重复确认，就表明3个数据报文段已经离开网络
+  + 这三个报文段不在消耗网络资源而是停留在接收方的缓存里
+  + 可见出现网络中不是堆积了报文段而是减少了3个报文段，因此可以适当把拥塞窗口增加一些
 
 #### 3.3.6 TCP和UDP
 
@@ -3527,7 +3663,6 @@ BIO(Blocked Input/Output)阻塞IO：client与server建立连接，每次的IO se
 
 
 协程，又称微线程，协程是一种用户态的轻量级线程。
-
 
 协程拥有自己的寄存器上下文和栈。协程调度切换时，将寄存器上下文和栈保存到其他地方，在切回来的时候，恢复先前保存的寄存器上下文和栈。因此：
 协程能保留上一次调用时的状态（即所有局部状态的一个特定组合），每次过程重入时，就相当于进入上一次调用的状态，换种说法：进入上一次离开时所处逻辑流的位置。
@@ -3991,7 +4126,7 @@ Spring Cloud 生态 SpringBoot
 
 1. API
 2. Http,RPC
-3. 注册于发现
+3. 注册与发现
 4. 熔断机制
 
 **SpringBoot和SpringCloud的关系**
