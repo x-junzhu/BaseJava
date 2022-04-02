@@ -1133,3 +1133,99 @@ Caused by: java.io.NotSerializableException: edu.fzu.pojo.User
 \- 所有的数据都会先放在一级缓存中；
 
 \- 只有当会话提交，或者关闭的时候，才会提交到二级缓冲中！
+
+
+
+## 11 Mybatis基础
+
+1 mapper接口的参数为单个变量，直接通过#{}或者${}接收接口
+
+2 mapper接口方法的参数为多个时，此时Mybatis会将这些参数放在一个map集合中，以两种方式进行存储
+
++ 以arg0,arg1... 为key, 以参数为值
++ 以param1,param2... 为key,以参数为值
+
+因此我们需要通过#{}或者${}以key寻找value方式访问值，但是需要注意${}的单引号问题
+
+3 mapper接口方法参数为map集合时，直接根据map集合的key值进行访问
+
+4 mapper接口方法的参数是实体类型的参数时，只需要通过#{}或者${}以属性的方式访问属性值即可，仍需注意${}的单引号问题。
+
+5 使用@Param注解命名参数时，此时Mybatis会将这些参数放在一个map集合中，以两种方式进行存储
+
++ 以param1,param2... 为key,以参数为值
++ 以@Param注解的值为key,寻找value
+
+#{}和${}之间的区别
+
+${}本质是字符串拼接
+
+#{}本质是占位符赋值
+
+
+
+> 属性与字段映射关系
+
+属性名(实体类)和字段名(数据库表)不一致的情况
+
++ 在数据库中为字段名起别名，设置别名select eid, emp_name as empName, age, sex, email from t_emp
++ 配置settings
+
+```xml
+<settings>
+      <!--配置数据库字段名映射为java中的驼峰命名-->
+      <setting name="mapUnderscoreToCamelCase" value="true"/>
+</settings>
+```
+
++ 通过ResultMap设置对应的 属性->字段名
+
+```xml
+<resultMap id="empResultMap" type="Employee">
+    	<!-- id标签设置表中主键的映射，result标签设置表中其他属性的映射-->
+        <id property="eid" column="eid"></id>
+        <result property="empName" column="emp_name"></result>
+        <result property="age" column="age"></result>
+        <result property="sex" column="sex"></result>
+        <result property="email" column="email"></result>
+</resultMap>
+```
+
+
+
+> 多对一关系
+
++ 级联
+
+```xml
+<!--处理多对一映射关系的方式一：级联映射-->
+<resultMap id="empAndDeptResultMapOne" type="Employee">
+    <id property="eid" column="eid"></id>
+    <result property="empName" column="emp_name"></result>
+    <result property="age" column="age"></result>
+    <result property="sex" column="sex"></result>
+    <result property="email" column="email"></result>
+    <!--级联属性赋值-->
+    <result property="dept.did" column="did"></result>
+    <result property="dept.deptName" column="dept_name"></result>
+</resultMap>
+```
+
++ association
+
+```xml
+<!--association处理多对一映射关系-->
+<resultMap id="empAndDeptResultMapTwo" type="Employee">
+    <id property="eid" column="eid"></id>
+    <result property="empName" column="emp_name"></result>
+    <result property="age" column="age"></result>
+    <result property="sex" column="sex"></result>
+    <result property="email" column="email"></result>
+    <!--association-->
+    <association property="dept" javaType="Dept">
+        <id property="did" column="did"/>
+        <result property="deptName" column="dept_name"/>
+    </association>
+</resultMap>
+```
+
