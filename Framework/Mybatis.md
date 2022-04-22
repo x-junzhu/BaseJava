@@ -1229,3 +1229,106 @@ ${}本质是字符串拼接
 </resultMap>
 ```
 
++ 分步查询
+
+
+
+动态SQL
+
+1、if：根据标签中test属性所对应的表达式决定标签中的内容是否需要拼接到SQL中
+
+2、where
+
++ 当标签中有内容时，会自动生成where关键字，并且将内容前多余的and或者or去掉
++ 当标签中没有内容时，此时where标签不会生成关键字where
+
+**注意：where标签无法去掉语句后面的and/or**
+
+
+
+> trim()标签
+
++ 如果标签中有内容时
+
+suffix|prefix: 将trim标签内容前面或者后面**添加**指定内容
+
+suffixOverrides|prefixOverrides:将trim标签内容前面或者后面**去掉**指定内容
+
++ 如果标签中没有内容时，trim标签也没有任何效果，即不会添加任务关键字
+
+
+
+> choose when... otherwise
+
+**相当于if... else if... else**
+
+choose中的when可以有多个，但是otherwise标签最多只能有一个，当when中有一个标签满足条件，即可，其他条件内容不执行
+
+
+
+> foreach
+
+```xml
+<!-- 
+collecitons 代表待遍历的集合(包括数组)
+item：表示结合中元素的类型
+separator:表示集合中元素之间的连接方式
+open:表示拼接前元素的开始
+close:表示拼接后元素的结束
+即：(8,9,10)
+foreach批量删除一
+-->
+<foreach collection="eids" item="eid" separator="," open="(" close=")">
+      #{eid}
+</foreach>
+
+<!--foreach批量删除二-->
+<foreach collection="eids" item="eid" separator="or">
+            eid=#{eid}
+</foreach>
+```
+
+
+
+## 12 SSM整合
+
+整合策略
+
+SSM = Spring + SpringMVC + Mybatis = (Spring + Mybatis) + SpringMVC
+
+即，先整合Spring + Mybatis，然后再整合SpringMVC
+
+
+
+> Spring整合Mybatis
+
++ 整合目标
+
+数据库连接池以及事务管理都交给Spring容器管理
+
+SqlSessionFactory对象应该放到Spring容器中作为单例对象管理
+
+Mapper动态代理对象交给Spring管理，我们从Spring容器中直接获得Mapper的代理对象
+
++ 整合所需Jar分析
+
+Junit测试(版本4.12)
+
+Mybatis(>3.4.5)
+
+Spring的相关Jar包(spring-context, spring-test, spring-jdbc, spring-tx, spring-aop, spring-aspects)
+
+Mybatis和Spring的整合Jar包(mybatis-spring-xx.jar)
+
+MySQL数据库驱动jar
+
+Druid数据库连接池jar
+
+
+
+> 整合SpringMVC
+
++ 整合思路
+
+把SpringMVC的入门案例整合进来
+
