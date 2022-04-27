@@ -125,3 +125,111 @@ Java(TM) SE Runtime Environment (build 1.8.0_241-b07)
 Java HotSpot(TM) 64-Bit Server VM (build 25.241-b07, mixed mode)
 ```
 
+
+
+## 3 MySQL
+
+### 3.1 安装软件包
+
+```shell
+sudo apt update
+# ubuntu默认安装的是MySQL8.0+
+sudo apt install mysql-server
+# 查看当前mysql服务状态
+sudo systemctl status mysql
+```
+
+### 3.2 初始化密码
+
+```mysql
+sudo mysql
+
+# 更改mysql的默认root用户密码
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'xjz99076'; 
+
+# 更新权限
+FLUSH PRIVILEGES;
+# 退出mysql
+quit; 
+```
+
+### 3.3 修改配置文件
+
+```shell
+sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf
+```
+
+### 3.4 重启MySQL服务
+
+```shell
+# 重启服务
+sudo service mysql restart
+```
+
+### 3.6 远程连接设置
+
+```mysql
+# mysql 8.0+ 使用如下指令
+create user root@'%' identified by '123456';
+ 
+grant all privileges on *.* to root@'%' with grant option;
+```
+
+### 3.5 MySQL的卸载
+
+```mysql
+# 首先在终端中查看MySQL的依赖项：dpkg --list|grep mysql
+CREATE DATABASE IF NOT EXISTS guli DEFAULT CHARSET utf8 COLLATE utf8_general_ci;
+# 卸载： sudo apt-get remove mysql-common
+
+# 卸载：sudo apt-get autoremove --purge mysql-server-5.7
+
+# 清除残留数据：dpkg -l|grep ^rc|awk '{print$2}'|sudo xargs dpkg -P
+
+# 再次查看MySQL的剩余依赖项：dpkg --list|grep mysql
+
+# 继续删除剩余依赖项，如：sudo apt-get autoremove --purge mysql-apt-config
+```
+
+
+
+## 4 Redis
+
+### 4.1 解压文件
+
+```shell
+tar -zxvf redis-6.0.6.tar.gz
+```
+
+### 4.2 编译
+
+```shell
+# 在redis-6.0.6目录里执行, 执行之前确保系统中有gcc环境
+make
+
+make install
+```
+
+### 4.3 配置redis.conf
+
+```shell
+# 默认安装的位置再
+/usr/local/bin
+
+# 可以将redis-6.0.6中的配置文件复制出一份放在/etc/redis.conf
+#以守护进程运⾏
+daemonize yes
+# 注释调绑定ip
+# bind 127.0.0.1
+# 关闭保护模式, 可以远程连接
+protected-mode no
+```
+
+### 4.4 启动
+
+```shell
+./redis-server /etc/redis.conf
+```
+
+
+
