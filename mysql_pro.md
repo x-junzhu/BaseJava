@@ -334,3 +334,350 @@ WHERE e1.employee_id = e2.manager_id;
   行 ，这种连接称为左（或右） 外连接。没有匹配的行时, 结果表中相应的列为空(NULL)。其中外连接还包括左外连接、右外连接和全连接
 + 如果是左外连接，则连接条件中左边的表也称为`主表`，右边的表称为`从表`。
 + 如果是右外连接，则连接条件中右边的表也称为`主表`，左边的表称为`从表`。
+
+```sql
+# SQL99语言的外连接join ... on
+# 左外连接
+SELECT employee_id, department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id;
+
+# 右外连接, 这里可以查出一些没有员工的部门
+SELECT employee_id, department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id;
+
+# 全连接: 但是MySQL不支持这样的全连接
+SELECT employee_id, department_name
+FROM employees e FULL JOIN departments d
+ON e.department_id=d.department_id;
+```
+
+
+
+#### 6.4 7种Join的实现
+
+![avatar](picture/sql_join.png)
+
+> 中图：内连接
+
+```sql
+# 中图：内连接
+SELECT e.employee_id,d.department_name
+FROM employees e INNER JOIN departments d
+ON e.department_id=d.department_id;
+```
+
+> 左上图：左外连接
+
+```sql
+# 左上图：左外连接
+SELECT employee_id, department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id;
+```
+
+> 右上图：右外连接
+
+```sql
+# 右上图：右外连接
+SELECT employee_id, department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id;
+```
+
+> 左中图
+
+```sql
+# 左中图
+SELECT employee_id, department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+WHERE d.department_id IS NULL;
+```
+
+> 右中图
+
+```sql
+# 右中图
+SELECT employee_id, department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id
+WHERE e.department_id IS NULL;
+```
+
+> 左下图
+
+```sql
+# 左下图：满外连接
+# 方式1：左上图 union all 右中图
+SELECT employee_id, department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+UNION ALL
+SELECT employee_id, department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id
+WHERE e.department_id IS NULL;
+
+# 方式2：左中图 union all 右上图
+SELECT employee_id, department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+WHERE d.department_id IS NULL
+UNION ALL
+SELECT employee_id, department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id
+```
+
+> 右下图
+
+```sql
+# 右下图
+# 左中图 union all 右中图
+SELECT employee_id, department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+WHERE d.department_id IS NULL
+UNION ALL
+SELECT employee_id, department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id
+WHERE e.department_id IS NULL;
+```
+
+#### 6.5 SQL99语法新特性-自然连接
+
+SQL99 在 SQL92 的基础上提供了一些特殊语法，比如 NATURAL JOIN 用来表示自然连接。我们可以把
+自然连接理解为 SQL92 中的等值连接。它会帮你自动查询两张连接表中所有相同的字段，然后进行等值
+连接。
+
+```sql
+# SQL99语法新特性-自然连接
+# natural join
+SELECT employee_id, last_name, department_name
+FROM employees e NATURAL JOIN departments d;
+
+# using
+SELECT employee_id,last_name,department_name
+FROM employees e JOIN departments d
+USING (department_id);
+```
+
+#### 6.6 练习
+
+```sql
+# 1.显示所有员工的姓名，部门号和部门名称。
+SELECT e.last_name, e.department_id, d.department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id;
+
+# 2.查询90号部门员工的job_id和90号部门的location_id
+SELECT e.last_name, e.job_id,e.department_id, d.location_id
+FROM employees e INNER JOIN departments d
+ON e.department_id=d.department_id
+WHERE e.department_id=90;
+
+# 3.选择所有有奖金的员工的 last_name , department_name , location_id , city
+SELECT e.last_name, d.department_name, e.commission_pct,d.location_id, l.city
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+LEFT JOIN locations l
+ON d.location_id=l.location_id
+WHERE e.commission_pct IS NOT NULL;
+
+
+# 4.选择city在Toronto工作的员工的 last_name , job_id , department_id , department_name
+SELECT e.last_name, e.job_id, e.department_id,d.department_name, l.city
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+LEFT JOIN locations l
+ON d.location_id=l.location_id
+WHERE l.city='Toronto';
+
+# 5.查询员工所在的部门名称、部门地址、姓名、工作、工资，其中员工所在部门的部门名称为’Executive’
+SELECT e.last_name, e.job_id, e.salary,d.department_name, l.street_address 
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+LEFT JOIN locations l
+ON d.location_id=l.location_id
+WHERE d.department_name='Executive';
+# 6.选择指定员工的姓名，员工号，以及他的管理者的姓名和员工号，结果类似于下面的格式
+# employees Emp# manager Mgr#
+SELECT e1.last_name, e1.employee_id, e2.last_name manager, e2.employee_id manager_id
+FROM employees e1 LEFT JOIN employees e2
+ON e1.manager_id=e2.employee_id; 
+# kochhar 101 king 100
+# 7.查询哪些部门没有员工
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e RIGHT JOIN departments d
+ON e.department_id=d.department_id
+WHERE e.department_id IS NULL;
+# 8. 查询哪个城市没有部门
+SELECT d.department_id, d.department_name, l.city
+FROM departments d RIGHT JOIN locations l
+ON d.location_id=l.location_id
+WHERE d.department_id IS NULL;
+# 9. 查询部门名为 Sales 或 IT 的员工信息
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e LEFT JOIN departments d
+ON e.department_id=d.department_id
+# where d.department_name='Sales' or d.department_name='IT';
+WHERE d.department_name IN ('Sales', 'IT');
+```
+
+## 7 单行函数
+
+### 7.1 基本函数
+
+```sql
+# SIGN(X)：返回X的符号。正数返回1，负数返回-1，0返回0
+# CEIL(x)，CEILING(x)：返回大于或等于某个值的最小整数		
+# RAND(x)：返回0~1的随机值，其中x的值用作种子值，相同的X值会产生相同的随机数
+# SQRT(x)：返回x的平方根。当X的值为负数时，返回NULL
+SELECT
+ABS(-123),ABS(32),SIGN(-23),SIGN(43),PI(),CEIL(32.32),CEILING(-43.23),FLOOR(32.32),
+FLOOR(-43.23),MOD(12,5)
+FROM DUAL;
+```
+
+### 7.2 三角函数
+
+```sql
+# RADIANS(x):将角度转化为弧度，其中，参数x为角度值
+# DEGREES(x):将弧度转化为角度，其中，参数x为弧度值
+SELECT RADIANS(30),RADIANS(60),RADIANS(90),DEGREES(2*PI()),DEGREES(RADIANS(90))
+FROM DUAL;
+```
+
+### 7.3 进制转换
+
+```sql
+# BIN(x):返回x的二进制编码
+# HEX(x):返回x的十六进制编码
+# OCT(x):返回x的八进制编码
+# CONV(x,f1,f2):返回f1进制数变成f2进制数
+SELECT BIN(10),HEX(10),OCT(10),CONV(10,2,8) FROM DUAL;
+```
+
+### 7.4 字符串函数
+
+```sql
+# CHAR_LENGTH(s): 返回字符串s的字符数。作用与CHARACTER_LENGTH(s)相同
+# LENGTH(s):返回字符串s的字节数，和字符集有关
+# CONCAT(s1,s2,......,sn):连接s1,s2,......,sn为一个字符串
+# CONCAT_WS(x,s1,s2,......,sn):同CONCAT(s1,s2,...)函数，但是每个字符串之间要加上x
+# LTRIM(s):去掉字符串s左侧的空格
+# TRIM(s):去掉字符串s开始与结尾的空格
+# REVERSE(s):返回s反转后的字符串
+# NULLIF(value1,value2):比较两个字符串，如果value1与value2相等，则返回NULL，否则返回value1
+```
+
+> **注意：MySQL中，字符串的位置是从1开始的。**
+
+```sql
+# LPAD:右对齐
+# RPAD:左对齐
+SELECT employee_id, last_name, LPAD(salary, 10, ' ')
+FROM employees;
+# CONCAT(s1,s2,......,sn):连接s1,s2,......,sn为一个字符串
+select concat('%', last_name, '%') from employees;
+```
+
+### 7.5 日期和时间函数
+
+```sql
+# NOW(), SYSDATE(): 返回当前系统日期和时间
+SELECT CURDATE(), CURRENT_DATE(),CURTIME(),NOW(), SYSDATE() FROM DUAL;
+
+# 日期与时间戳
+SELECT UNIX_TIMESTAMP(), FROM_UNIXTIME(1651491896)
+FROM DUAL;
+
+# 获取月份，星期，星期数，天数，
+SELECT YEAR(CURDATE()),MONTH(CURDATE()),DAY(CURDATE()),
+HOUR(CURTIME()),MINUTE(NOW()),SECOND(SYSDATE())
+FROM DUAL;
+
+# 获取某一天是一年中的第几天，第几个季度，等等
+SELECT MONTHNAME('2021-10-26'),DAYNAME('2021-10-26'),WEEKDAY('2021-10-26'),
+QUARTER(CURDATE()),WEEK(CURDATE()),DAYOFYEAR(NOW()),
+DAYOFMONTH(NOW()),DAYOFWEEK(NOW())
+FROM DUAL;
+
+# 日期操作函数
+# 获取距离当前时间有多少秒
+SELECT EXTRACT(SECOND FROM NOW()) FROM DUAL;
+```
+
+### 7.7 计算日期和时间的函数
+
+```sql
+# 在当前的年上加上一年
+SELECT NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR) FROM DUAL;
+
+SELECT
+# 当前时间与某个时间之间的差多少天
+DATEDIFF(NOW(),'2021-10-01'),
+TIMEDIFF(NOW(),'2021-10-25 22:10:10'),FROM_DAYS(366),TO_DAYS('0000-12-25'),
+LAST_DAY(NOW()),MAKEDATE(YEAR(NOW()),12),MAKETIME(10,21,23),PERIOD_ADD(20200101010101,10)
+FROM DUAL;
+```
+
+### 7.8 日期的格式化与解析
+
+```sql
+# 按照某种格式输出日期
+SELECT DATE_FORMAT(CURDATE(),'%Y-%m-%d') FROM DUAL;
+
+# 日期的格式化
+SELECT CONCAT(DATE_FORMAT(CURDATE(),'%Y-%m-%d'),' ', TIME_FORMAT(NOW(), '%h:%i:%S'))
+FROM DUAL;
+```
+
+## 8 聚合函数
+
+### 8.1 常见的几个聚合函数
+
+> AVG() / SUM()
+
+```sql
+# AVG() / SUM():只适用于数值类型的
+# SUM()计算过程中过滤掉空值，不计算空值
+# AVG() = SUM() / COUNT(1)
+SELECT AVG(salary), SUM(salary)
+FROM employees;
+```
+
+>  MAX()  / MIN()
+
+```sql
+# MAX() / MIN():适用于数值类型、字符串类型和日期类型
+SELECT MAX(salary), MIN(salary)
+FROM employees;
+# 字符串类型
+SELECT MAX(last_name), MIN(last_name)
+FROM employees;
+# 日期类型
+SELECT MAX(hire_date), MIN(hire_date)
+FROM employees;
+```
+
+> COUNT()
+
+**COUNT(*)返回表中记录总数，适用于任意数据类型**
+
+```sql
+SELECT COUNT(employee_id) FROM employees;
+select count(1) from employees;
+# count(commission_pct)不能统计字段中包含null的条目
+```
+
+
+
+### 8.2 GROUP BY的使用
+
+
+
+### 8.3 HAVING的使用
