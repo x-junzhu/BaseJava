@@ -678,6 +678,150 @@ select count(1) from employees;
 
 ### 8.2 GROUP BY的使用
 
+#### 8.2.1 单列分组
 
+```sql
+# GROUP BY
+# 需求：查询各个部门的平均工资、最高工资
+SELECT department_id, AVG(salary)
+FROM employees
+GROUP BY department_id;
+
+# 查询各个job_id的平均工资
+SELECT job_id, AVG(salary)
+FROM employees
+GROUP BY job_id;
+```
+
+#### 8.2.2 多列分组
+
+```sql
+# 查询各个department_id中不同job_id的平均工资
+SELECT department_id, job_id,AVG(salary)
+FROM employees
+GROUP BY department_id, job_id;
+
+## 结论：SELECT中出现的非组函数的字段必须声明在GROUP BY中
+## 反之，GROUP BY中声明的字段可以不出现在SELECT中
+
+## GROUP BY 声明在FROM后面，WHERE的前面，ORDER BY前面，LIMIT的前面
+```
 
 ### 8.3 HAVING的使用
+
+```sql
+# HAVING的使用
+# 查询各个部门中最高工资比10000高的部门信息
+SELECT department_id, MAX(salary)
+FROM employees
+GROUP BY department_id;
+
+# 结论1：如果过滤条件中使用了聚合函数，则必须使用HAVING来替换WHERE。否则报错
+# 结论2：HAVING的声明必须在GROUP BY的后面
+SELECT department_id, MAX(salary)
+FROM employees
+GROUP BY department_id
+HAVING MAX(salary) > 10000;
+
+# 在开发中，使用HAVING的前提是SQL中使用了GROUP BY
+
+/*
+WHERE和HAVING的对比
+1.从使用范围上，HAVING的适用范围更广
+2.如果过滤条件中没有聚合函数：这种情况下，WHERE的执行效率要高于HAVING
+*/
+
+/*SQL99语法
+SELECT ...,...,...(存在聚合函数)
+FROM ...,...,... JOIN ... ... ON(多表连接的条件)
+WHERE 多表的连接条件 AND 不包含聚合函数的过滤条件
+GROUP BY ...,...
+HAVING 包含聚合函数的过滤条件
+ORDER BY ...,...
+LIMIT ...,...
+*/
+```
+
+### 8.4 SQL语句的执行顺序
+
+```sql
+/*
+SQL的执行顺序
+-> FROM ...,... -> ON -> (LEFT / RIGHT JOIN) 
+-> WHERE -> GROUP BY -> HAVING -> SELECT -> DISTINCT
+-> ORDER BY -> LIMIT
+*/
+```
+
+
+
+## 9 子查询
+
+### 9.1 单行子查询
+
+```sql
+# 子查询
+# 需求：谁的工资比Abel的高？
+# 自连接
+SELECT e2.last_name, e2.salary
+FROM employees e1, employees e2
+WHERE e1.last_name='Abel' AND e2.salary > e1.salary;
+
+# 子查询
+SELECT employee_id, salary
+FROM employees
+WHERE salary > (SELECT salary FROM employees WHERE last_name='Abel');
+
+# 称谓：外查询(主查询)、内查询(子查询)
+
+
+/*
+子查询分类
+角度1(返回结果的条目数)：单行子查询  VS  多行子查询
+角度2(内查询是否被执行多次)：相关子查询  VS  不相关子查询
+比如：相关子查询：查询工资大于本部门平均工资的员工信息
+      不相关子查询：查询工资大于本公司平均工资的员工信息
+*/
+# 题目：查询工资大于149号员工工资的员工的信息
+SELECT employee_id, salary
+FROM employees
+WHERE salary > (SELECT salary FROM employees WHERE employee_id=149);
+# 子查询的编写技巧：从里往外写，从外往里写
+```
+
+### 9.2 多行子查询
+
+```sql
+# 多行子查询的操作符
+# IN ANY ALL SOME(同ANY)
+
+# 题目：返回其它job_id中比job_id为‘IT_PROG’部门任一工资低的员工的员工号、姓名、job_id 以及salary
+SELECT employee_id,last_name,job_id, salary
+FROM employees
+WHERE salary < ANY (SELECT salary FROM employees WHERE job_id='IT_PROG')
+AND job_id <> 'IT_PROG';
+
+# 题目：查询平均工资最低的部门id
+# MySQL中聚合函数不能嵌套使用
+# 方式1
+SELECT department_id
+FROM employees
+GROUP BY department_id
+HAVING AVG(salary) = (
+	SELECT MIN(avg_sal)
+	FROM 
+	(SELECT department_id, AVG(salary) avg_sal
+	FROM employees
+	GROUP BY department_id) t
+);
+# 方式2
+SELECT department_id
+FROM employees
+GROUP BY department_id
+HAVING AVG(salary) <= ALL (
+	SELECT AVG(salary) avg_sal
+	FROM employees
+	GROUP BY department_id
+);
+```
+
