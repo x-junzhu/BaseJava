@@ -823,5 +823,342 @@ HAVING AVG(salary) <= ALL (
 	FROM employees
 	GROUP BY department_id
 );
+
+# 题目：查询员工中工资大于本部门平均工资的员工的last_name,salary和其department_id
+# 方式1：使用相关子查询
+SELECT last_name,salary,department_id
+FROM employees e1
+WHERE salary > (
+	SELECT AVG(salary)
+	FROM employees e2
+	WHERE e2.department_id=e1.department_id
+);
+
+# 方式2：在FROM中声明子查询
+SELECT e.last_name,e.salary,e.department_id
+FROM employees e, (
+	SELECT department_id, AVG(salary) avg_sal
+	FROM employees
+	GROUP BY department_id
+) tmp
+WHERE tmp.department_id=e.department_id
+AND e.salary > tmp.avg_sal;
 ```
 
+### 9.3 EXISTS与NOT EXISTS
+
+```sql
+# 题目：查询公司管理者的employee_id，last_name，job_id，department_id信息
+# 方式1
+SELECT employee_id, last_name, job_id, department_id
+FROM employees
+WHERE employee_id IN (
+	SELECT manager_id FROM employees
+);
+# 方式2
+SELECT employee_id, last_name, job_id, department_id
+FROM employees e1
+WHERE EXISTS (
+	SELECT *
+	FROM employees e2
+	WHERE e1.employee_id=e2.manager_id
+);
+
+# 题目：查询departments表中，不存在于employees表中的部门的department_id和department_name
+# 方式1:左连接
+SELECT e.department_id, d.department_name
+FROM departments d LEFT JOIN employees e
+ON d.department_id=e.department_id
+WHERE e.department_id IS NULL;
+# 方式2
+SELECT department_id, department_name
+FROM departments d
+WHERE NOT EXISTS (
+	SELECT * 
+	FROM employees e
+	WHERE d.department_id=e.department_id
+);
+```
+
+
+
+## 10 创建和管理表
+
+> 创建数据库
+
+```sql
+# 创建数据库并制定字符集, 如果没有制定字符集将采用数据库默认的字符集
+CREATE DATABASE IF NOT EXISTS test01_office CHARACTER SET 'utf8';
+# 查看创建数据库的信息
+show create database test01_office
+
+# 删除库
+drop database if exists test01
+```
+
+
+
+> 创建表
+
+```sql
+CREATE TABLE IF NOT EXISTS `ucenter_member` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '用户id',
+  `openid` VARCHAR(128) DEFAULT NULL COMMENT '微信openid',
+  `mobile` VARCHAR(11) DEFAULT '' COMMENT '手机号',
+  `password` VARCHAR(255) DEFAULT NULL COMMENT '密码',
+  `nickname` VARCHAR(50) DEFAULT NULL COMMENT '昵称',
+  `sex` TINYINT(2) UNSIGNED DEFAULT NULL COMMENT '性别 1 女，2 男',
+  `age` TINYINT(3) UNSIGNED DEFAULT NULL COMMENT '年龄',
+  `avatar` VARCHAR(255) DEFAULT NULL COMMENT '用户头像',
+  `sign` VARCHAR(100) DEFAULT NULL COMMENT '用户签名',
+  `is_disabled` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '是否禁用 1（true）已禁用，  0（false）未禁用',
+  `is_deleted` TINYINT(1) NOT NULL DEFAULT '0' COMMENT '逻辑删除 1（true）已删除， 0（false）未删除',
+  `gmt_create` DATETIME NOT NULL COMMENT '创建时间',
+  `gmt_modified` DATETIME NOT NULL COMMENT '更新时间'
+) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+```
+
+
+
+**复制现有表到新的表中**
+
+```sql
+#3. 将表departments中的数据插入新表dept02中
+# 这里使用departments的所有字段建表dept02, 同时也会导入departments的对应字段数据
+# 可以根据select查询结果创建表，同时查询结果的别名，可以创建新表的列名
+CREATE TABLE dept02
+AS
+SELECT *
+FROM atguigudb.departments;
+```
+
+
+
+**修改或者增加表的结构**
+
+```sql
+#5. 将列last_name的长度增加到50
+DESC emp01;
+ALTER TABLE emp01
+MODIFY last_name VARCHAR(50);
+# http://www.google.com.hk/
+#7. 删除表emp01
+DROP TABLE IF EXISTS emp01;
+
+#9. 在表dept02和emp01中添加新列test_column，并检查所作的操作
+ALTER TABLE emp01 ADD test_column VARCHAR(10);
+# 添加字段phone_num在emp_name字段后面
+alter table emp01 add phone_num varchar(20) after emp_name;
+
+#10.直接删除表emp01中的列 department_id
+ALTER TABLE emp01
+DROP COLUMN department_id;
+
+# 查看创建表的信息
+show create table employees;
+
+# 重命名表
+RENAME TABLE myemp1 to emp1;
+```
+
+**删除表**
+
+```sql
+# 删除表
+DROP TABLE IF EXISTS emp01;
+
+# 清空表，只是清除表中的数据，表的结构仍然保存
+TRUNCATE TABLE employees;
+
+# 对比TRUNCATE table和DELETE from table
+# 相同点：都可以实现清空表中所有数据，同时保留表的结构
+# 不同点: TRUNCATE 一旦执行该操作后，表中数据清除完，但是数据不可以回滚。
+#		 DELETE 一旦执行后 表中数据可以全部清除(不带WHERE) 同时数据可以实现回滚
+```
+
+
+
+**DDL和DML的说明**
+
++ DDL的操作一旦执行，就不可以回滚。由于DDL语句执行完语句后一定会执行一次COMMIT，此操作不受当前设置SET AUTOCOMMIT=FALSE的影响
++ DML的操作默认情况，一旦执行，也可以不回滚，但是如果在执行DML之前，执行了set autocommit=false，则执行的DML操作就可以实现回滚
+
+
+
+> 提交和回滚
+
+```sql
+# COMMIT：一旦提交数据后，即执行COMMIT，数据被永久的保存在数据库中，意味着数据不可回滚
+
+# ROLLBACK:一旦执行ROLLBACK，则可以实现数据的回滚。回滚到最近的一次COMMIT操作之后。
+```
+
+
+
+## 11 数据类型
+
+**MySQL中的数据类型**
+
+| 类型             | 类型举例                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| 整数类型         | TINYINT、SMALLINT、MEDIUMINT、INT(或INTEGER)、BIGINT         |
+| 浮点类型         | FLOAT、DOUBLE                                                |
+| 定点数类型       | DECIMAL                                                      |
+| 位类型           | BIT                                                          |
+| 日期时间类型     | YEAR、TIME、DATE、DATETIME、TIMESTAMP                        |
+| 文本字符串类型   | CHAR、VARCHAR、TINYTEXT、TEXT、MEDIUMTEXT、LONGTEXT          |
+| 枚举类型         | ENUM                                                         |
+| 集合类型         | SET                                                          |
+| 二进制字符串类型 | BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB、LONGBLOB      |
+| JSON类型         | JSON对象、JSON数组                                           |
+| 空间数据类型     | 单值类型：GEOMETRY、POINT、LINESTRING、POLYGON；<br/>集合类型：MULTIPOINT、MULTILINESTRING、MULTIPOLYGON、<br/>GEOMETRYCOLLECTION |
+
+**常见数据类型的属性，如下：**
+
+| MySQL关键字        | 含义                     |
+| ------------------ | ------------------------ |
+| NULL               | 数据列可包含NULL值       |
+| NOT NULL           | 数据列不允许包含NULL值   |
+| DEFAULT            | 默认值                   |
+| PRIMARY KEY        | 主键                     |
+| AUTO_INCREMENT     | 自动递增，适用于整数类型 |
+| UNSIGNED           | 无符号                   |
+| CHARACTER SET name | 指定一个字符集           |
+
+### 11.1 整数类型
+
+整数类型一共有 5 种，包括 TINYINT、SMALLINT、MEDIUMINT、INT（INTEGER）和 BIGINT。
+它们的区别如下表所示：
+
+| 整数类型     | 字节 | 有符号数取值范围                         | 无符号数取值范围       |
+| ------------ | ---- | ---------------------------------------- | ---------------------- |
+| TINYINT      | 1    | -128~127                                 | 0~255                  |
+| SMALLINT     | 2    | -32768~32767                             | 0~65535                |
+| MEDIUMINT    | 3    | -8388608~8388607                         | 0~16777215             |
+| INT、INTEGER | 4    | -2147483648~2147483647                   | 0~4294967295           |
+| BIGINT       | 8    | -9223372036854775808~9223372036854775807 | 0~18446744073709551615 |
+
+#### 11.1.1 可选属性
+
+整数类型的可选属性有三个：
+
+> M
+
+`M` : 表示显示宽度，M的取值范围是(0, 255)。例如，int(5)：当数据宽度小于5位的时候在数字前面需要用
+字符填满宽度。该项功能需要配合“ ZEROFILL ”使用，表示用“0”填满宽度，否则指定显示宽度无效。
+如果设置了显示宽度，那么插入的数据宽度超过显示宽度限制，会不会截断或插入失败？
+答案：不会对插入的数据有任何影响，还是按照类型的实际宽度进行保存，即显示宽度与类型可以存储的
+值范围无关。从MySQL 8.0.17开始，整数数据类型不推荐使用显示宽度属性。
+整型数据类型可以在定义表结构时指定所需要的显示宽度，如果不指定，则系统为每一种类型指定默认
+的宽度值。
+举例：
+
+```sql
+CREATE TABLE test_int1 ( x TINYINT,　y SMALLINT,　z MEDIUMINT,　m INT,　n BIGINT );
+```
+
+> UNSIGNED
+
+`UNSIGNED` : 无符号类型（非负），所有的整数类型都有一个可选的属性UNSIGNED（无符号属性），无
+符号整数类型的最小取值为0。所以，如果需要在MySQL数据库中保存非负整数值时，可以将整数类型设
+置为无符号类型。
+int类型默认显示宽度为int(11)，无符号int类型默认显示宽度为int(10)。
+
+> ZEROFILL
+
+`ZEROFILL `: 0填充,（如果某列是ZEROFILL，那么MySQL会自动为当前列添加UNSIGNED属性），如果指
+定了ZEROFILL只是表示不够M位时，用0在左边填充，如果超过M位，只要不超过数据存储范围即可。
+原来，在 int(M) 中，M 的值跟 int(M) 所占多少存储空间并无任何关系。 int(3)、int(4)、int(8) 在磁盘上都
+是占用 4 bytes 的存储空间。也就是说，int(M)，必须和UNSIGNED ZEROFILL一起使用才有意义。如果整
+数值超过M位，就按照实际位数存储。只是无须再用字符 0 进行填充。
+
+
+
+`TINYINT `：一般用于枚举数据，比如系统设定取值范围很小且固定的场景。
+`SMALLINT` ：可以用于较小范围的统计数据，比如统计工厂的固定资产库存数量等。
+`MEDIUMINT` ：用于较大整数的计算，比如车站每日的客流量等。
+`INT、INTEGER `：取值范围足够大，一般情况下不用考虑超限问题，用得最多。比如商品编号。
+`BIGINT` ：只有当你处理特别巨大的整数时才会用到。比如双十一的交易量、大型门户网站点击量、证
+券公司衍生产品持仓等。
+
+
+
+### 11.2 浮点类型
+
+浮点数和定点数类型的特点是可以处理小数，你可以把整数看成小数的一个特例。因此，浮点数和定点
+数的使用场景，比整数大多了。 MySQL支持的浮点数类型，分别是 FLOAT、DOUBLE、REAL。
+
++ FLOAT 表示单精度浮点数；
++ DOUBLE 表示双精度浮点数
+
+
+
+### 11.3 定点数类型
+
++ MySQL中的定点数类型只有 DECIMAL 一种类型
+
+| 数据类型                 | 字节数  | 含义               |
+| ------------------------ | ------- | ------------------ |
+| DECIMAL(M,D),DEC,NUMERIC | M+2字节 | 有效范围由M和D决定 |
+
++ 使用 DECIMAL(M,D) 的方式表示高精度小数。其中，M被称为精度，D被称为标度。0<=M<=65，
+  0<=D<=30，D<M。例如，定义DECIMAL（5,2）的类型，表示该列取值范围是-999.99~999.99。
++ DECIMAL(M,D)的最大取值范围与DOUBLE类型一样，但是有效的数据范围是由M和D决定的。
+  DECIMAL 的存储空间并不是固定的，由精度值M决定，总共占用的存储空间为M+2个字节。也就是
+  说，在一些对精度要求不高的场景下，比起占用同样字节长度的定点数，浮点数表达的数值范围可
+  以更大一些。
++ 定点数在MySQL内部是以`字符串`的形式进行存储，这就决定了它一定是精准的。
++ 当DECIMAL类型不指定精度和标度时，其**默认为DECIMAL(10,0)。**当数据的精度超出了定点数类型的
+  精度范围时，则MySQL同样会进行四舍五入处理。
++ 浮点数 vs 定点数
+
+①浮点数相对于定点数的优点是在长度一定的情况下，浮点类型取值范围大，但是不精准，适用
+于需要取值范围大，又可以容忍微小误差的科学计算场景（比如计算化学、分子建模、流体动
+力学等）
+
+②定点数类型取值范围相对小，但是精准，没有误差，适合于对精度要求极高的场景 （比如涉
+及金额计算的场景）
+
+
+
+```sql
+# 数据库中二进制和十进制转换可以
+select f1 + 0 from test_bit1;
+```
+
+
+
+### 11.4 日期与时间类型
+
+日期与时间是重要的信息，在我们的系统中，几乎所有的数据表都用得到。原因是客户需要知道数据的
+时间标签，从而进行数据查询、统计和处理。
+MySQL有多种表示日期和时间的数据类型，不同的版本可能有所差异，MySQL8.0版本支持的日期和时间
+类型主要有：YEAR类型、TIME类型、DATE类型、DATETIME类型和TIMESTAMP类型。
+
++ YEAR 类型通常用来表示年
++ DATE 类型通常用来表示年、月、日
++ TIME 类型通常用来表示时、分、秒
++ DATETIME 类型通常用来表示年、月、日、时、分、秒
++ TIMESTAMP 类型通常用来表示带时区的年、月、日、时、分、秒
+
+| 类型      | 名称     | 字节 | 日期格式            | 最小值                       | 最大值                     |
+| --------- | -------- | ---- | ------------------- | ---------------------------- | -------------------------- |
+| YEAR      | 年       | 1    | YYYY或YY            | 1901                         | 2155                       |
+| TIME      | 时间     | 3    | HH:MM:SS            | -838:59:59                   | 838:59:59                  |
+| DATE      | 日期     | 3    | YYYY:MM:DD          | 1000-01-01                   | 9999-12-03                 |
+| DATETIME  | 日期时间 | 8    | YYYY:MM:DD HH:MM:SS | 1000-01-01 00:00:00          | 9999-12-31 23:59:59        |
+| TIMESTAMP | 日期时间 | 4    | YYYY:MM:DD HH:MM:SS | 1970-01-01<br/> 00:00:00 UTC | 2038-01-19<br/>03:14:07UTC |
+
+>DATETIM
+
+DATETIME类型在所有的日期时间类型中占用的存储空间最大，总共需要8 个字节的存储空间。在格式上
+为DATE类型和TIME类型的组合，可以表示为YYYY-MM-DD HH:MM:SS ，其中YYYY表示年份，MM表示月
+份，DD表示日期，HH表示小时，MM表示分钟，SS表示秒。
+
+在向DATETIME类型的字段插入数据时，同样需要满足一定的格式条件。
+
++ 以YYYY-MM-DD HH:MM:SS 格式或者YYYYMMDDHHMMSS 格式的字符串插入DATETIME类型的字段时，
+  最小值为1000-01-01 00:00:00，最大值为9999-12-03 23:59:59。注：以YYYYMMDDHHMMSS格式的数字插入DATETIME类型的字段时，会被转化为YYYY-MM-DD
+  HH:MM:SS格式。
++ 使用函数CURRENT_TIMESTAMP() 和NOW() ，可以向DATETIME类型的字段插入系统的当前日期和
+  时间。
