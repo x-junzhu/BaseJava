@@ -233,3 +233,71 @@ protected-mode no
 
 
 
+## 5 RabbitMQ
+
+### 5.1 安装RabbitMQ环境
+
+由于RabbitMQ需要erlang语言的支持，在安装rabbitMq之前需要安装erlang，执行命令：
+
+```shell
+# 安装Erlang环境
+sudo apt-get install erlang-nox    # 安装erlang
+# 查看ErLang的版本
+erl    # 查看relang语言版本，成功执行则说明relang安装成功
+```
+
+###  5.2 安装 RabbitMQ
+
+```shell
+sudo apt-get install rabbitmq-server  #安装成功自动启动
+
+# 查看RabbitMQ的状态
+systemctl status rabbitmq-server
+```
+
+
+
+RabbitMQ的启动与关闭
+
+```shell
+service rabbitmq-server start    # 启动
+
+service rabbitmq-server stop    # 停止
+
+service rabbitmq-server restart  # 重启
+```
+
+### 5.3 Web可视化操作界面
+
+```shell
+# 启用插件
+
+rabbitmq-plugins enable rabbitmq_management
+
+# 装完后重启 
+
+service rabbitmq-server restart  
+```
+
+
+
+```shell
+# 查看rabbitmq用户
+rabbitmqctl list_users
+```
+
+### 5.4 账号管理
+
+```shell
+# 增加普通用户
+rabbitmqctl add_user admin 123 
+
+# 给普通用户分配管理员角色
+rabbitmqctl set_user_tags admin administrator   
+
+# 设置非主机课访问
+rabbitmqctl set_permissons -p "/" ".*" ".*" ".*"
+
+# 最后就可以使用admin访问 http://192.168.0.104:15672/
+```
+
